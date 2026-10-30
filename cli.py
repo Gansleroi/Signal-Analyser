@@ -42,11 +42,21 @@ class Cli:
             print("6. ЛЧМ (Линейно-частотная модуляция)")
             print("7. ФМ (Фазовая модуляция)")
             print("8. Затухающий синус")
+            print("9. Гаусов импульс")
 
             form = get_int("")
-            freq = get_float("Введите частоту сигнала (Гц)\n")
             ampl = get_float("Введите амплитуду сигнала (В)\n")
-            phase = get_float("Введите начальную фазу сигнала в градусах.\n")
+            
+            freq = 0.0
+            phase = 0.0
+            sigma = 0.0
+            
+            if form != 9:
+                freq = get_float("Введите частоту сигнала (Гц)\n")
+                phase = get_float("Введите начальную фазу сигнала в градусах.\n")
+            
+            else:
+                sigma = get_float("Введите ширину импульса sigma (в секундах):\n")
 
             freq_mod = 0.0
             mod_index = 0.0
@@ -59,8 +69,8 @@ class Cli:
             elif form == 6:
                 freq_end = get_float("Введите КОНЕЧНУЮ частоту ЛЧМ (Гц):\n")
             elif form == 7:
-                freq_mod = get_float("Введите модулирующую частоту (Гц): ")
-                mod_index = get_float("Введите коэффициент модуляции (например, 1.0 - 5.0): ")
+                freq_mod = get_float("Введите модулирующую частоту (Гц):\n")
+                mod_index = get_float("Введите коэффициент модуляции (например, 1.0 - 5.0):\n")
             elif form == 8:
                 damp_index = get_float("Введите коэффициент затухания.\n")
 
@@ -94,6 +104,10 @@ class Cli:
                 
                 case 8:
                     signal = DampedSineSignal(freq=freq, ampl=ampl, damping=damp_index, phase=phase)
+                    signals.append(signal)
+                
+                case 9:
+                    signal = GaussianSignal(ampl=ampl, sigma=sigma, phase=phase)
                     signals.append(signal)
 
                 case _:

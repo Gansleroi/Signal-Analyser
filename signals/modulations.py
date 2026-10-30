@@ -3,13 +3,11 @@ import numpy as np
 
 class AMSignal(BaseSignal):
     def __init__(self, freq: float, ampl: float, freq_mod: float, mod_index: float = 0.5, phase: float = 0.0) -> None:
-
         super().__init__(freq=freq, ampl=ampl, phase=phase)
         self.freq_mod = freq_mod
         self.mod_index = mod_index
 
     def generate(self, t: np.ndarray) -> np.ndarray:
-
         self.t = t
         envelope = 1 + self.mod_index * np.sin(2 * np.pi * self.freq_mod * t)
         carrier = np.sin(2 * np.pi * self.freq * t + self.phase * np.pi / 180)
