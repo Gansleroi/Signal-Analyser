@@ -42,10 +42,10 @@ class Cli:
             
         self.t = np.arange(self.N) * self.dt
         
+        combined_sig, description = self._create_combined_signal()  #Генерация сигналов
+        
         ans_hann = input("Применить окно Ханна для уменьшения растекания? [y / n]:\n")
         self.use_hann = ans_hann.strip().lower() == 'y'
-        
-        combined_sig, description = self._create_combined_signal()  #Генерация сигналов
         
         self._analyse_and_plot(signal_obj=combined_sig, description=description)  #Анализ и построение графиков
         
