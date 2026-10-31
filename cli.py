@@ -245,6 +245,8 @@ class Cli:
             
             self._analyse_and_plot(filtred_sig, (description+' После фильтра'))
             
+            self._audio_export(signal_obj=filtred_sig)
+            
     def _apply_EMD(self, signal_obj: object, description: str) -> None:  #Применение ЭМД
         ans_emd = input("Применить Эмпирическую Модовую Декомпозицию (EMD)? [y / n]:\n").strip().lower()
         if ans_emd == 'y':
