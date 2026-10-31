@@ -15,7 +15,17 @@ class AMSignal(BaseSignal):
         return self.data
 
     def __str__(self):
-        return f"AM {self.freq / 1000: .1f}кГц (mod {self.freq_mod / 1000: .1f}кГц)"
+        if self.freq < 1000:
+            carrier_str = f"{self.freq:.0f}Гц"
+        else:
+            carrier_str = f"{self.freq/1000:.1f}кГц"
+
+        if self.freq_mod < 1000:
+            mod_str = f"{self.freq_mod:.0f}Гц"
+        else:
+            mod_str = f"{self.freq_mod/1000:.1f}кГц"
+            
+        return f"AM {carrier_str} (mod {mod_str})"
 
 class ChirpSignal(BaseSignal):
     def __init__(self, freq_start: float, freq_end: float, ampl: float, phase: float = 0.0) -> None:
@@ -48,4 +58,5 @@ class PMSignal(BaseSignal):
         return self.data
 
     def __str__(self):
-        return f"PM {self.freq/1000:.1f}кГц (mod {self.freq_mod/1000:.1f}кГц)"
+        mod_str = f"{self.freq_mod:.0f}Гц" if self.freq_mod < 1000 else f"{self.freq_mod/1000:.1f}кГц"
+        return f"PM {self.freq/1000:.1f}кГц (mod {mod_str})"

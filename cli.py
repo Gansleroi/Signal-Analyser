@@ -2,6 +2,7 @@ import numpy as np
 from signals import *
 from spec import Spectr
 from graph import Plot
+from exporter import AudioExporter
 
 def get_float(text: str):
         while True:
@@ -16,6 +17,19 @@ def get_int(text: str):
                 return int(input(text))
             except ValueError:
                     print("Ошибка! Введите корректное значение\n")
+                    
+def snap_to_bin(desired_freq: float, fs: float, N: int) -> float:
+    if desired_freq == 0:
+        return 0.0
+    
+    df = fs / N
+    k = round(desired_freq / df)
+    
+    if k == 0:
+        k = 1
+        
+    exact_freq = k * df
+    return exact_freq
 
 
 class Cli:
@@ -24,13 +38,18 @@ class Cli:
     def __init__(self):
 
         print("Вас приветствует программа анализа сложных сигналов!")
-        N = get_int("Пожалуйста введите количество сигналов.\n")
+        M = get_int("Пожалуйста введите количество сигналов.\n")
+        fs = get_float("Введите частоту дискретизации (Гц):\n")
         ts = get_float("Введите время реализации (с).\n")
-        t = np.linspace(0, ts, 5000)
+        
+        N = int(fs * ts)
+        dt = 1 / fs
+        
+        t = np.arange(N) * dt
 
         signals = []
 
-        for i in range(0, N):
+        for i in range(0, M):
 
             print(f"Создаётся {i + 1}-ый сигнал!")
             print("Выберите форму сигнала:")
@@ -43,6 +62,9 @@ class Cli:
             print("7. ФМ (Фазовая модуляция)")
             print("8. Затухающий синус")
             print("9. Гаусов импульс")
+            print("10. Белый шум")
+            print("11. Розовый шум (1/f)")
+            print("12. Броуновский шум (1/f^2)")
 
             form = get_int("")
             ampl = get_float("Введите амплитуду сигнала (В)\n")
@@ -51,8 +73,18 @@ class Cli:
             phase = 0.0
             sigma = 0.0
             
-            if form != 9:
-                freq = get_float("Введите частоту сигнала (Гц)\n")
+            if form not in [9, 10, 11, 12]:
+                user_freq = get_float("Введите частоту сигнала (Гц)\n")
+               
+                freq = snap_to_bin(user_freq, fs, N) 
+                
+                if freq >= fs / 2:
+                    print(f"ВНИМАНИЕ: Частота {freq:.1f} Гц слишком высока для Fs={fs} Гц.")
+                    print(f"Максимально допустимая: {fs/2} Гц. Сигнал будет искажен.")
+                
+                if freq != user_freq:
+                    print(f"Частота скорректирована до {freq:.2f} Гц для идеального спектра (без растекания).")
+                
                 phase = get_float("Введите начальную фазу сигнала в градусах.\n")
             
             else:
@@ -109,6 +141,16 @@ class Cli:
                 case 9:
                     signal = GaussianSignal(ampl=ampl, sigma=sigma, phase=phase)
                     signals.append(signal)
+                
+                case 10:
+                    signal = WhiteNoiseSignal(ampl=ampl)
+                    signals.append(signal)
+                case 11:
+                    signal = PinkNoiseSignal(ampl=ampl)
+                    signals.append(signal)
+                case 12:
+                    signal = BrownianNoiseSignal(ampl=ampl)
+                    signals.append(signal)
 
                 case _:
                     print("Неверный выбор! Сигнал пропущен.")
@@ -122,11 +164,6 @@ class Cli:
 
         combined_sig = signals[0]
         combined_sig.generate(t)
-
-        ans = input("Добавить белый шум? [y / n]\n")
-        if ans.strip().lower() == 'y':
-            sigma = get_float("Введите СКО шума.\n")
-            combined_sig.data += np.random.normal(0, sigma, len(t))
             
         print("\nГенерация и сложение сигналов...")
 
@@ -134,17 +171,16 @@ class Cli:
             sig.generate(t)
             combined_sig = combined_sig + sig
 
-        print("Анализ спектра...")
-
         ans_hann = input("Применить окно Ханна для уменьшения растекания? [y / n]:\n")
         use_hann = ans_hann.strip().lower() == 'y'
+        
+        print("Анализ спектра...")
 
-        spec = Spectr(signal_obj=combined_sig, use_hann=use_hann)
+        spec = Spectr(signal_obj=combined_sig, fs=fs, use_hann=use_hann)
         spec_amplitude = spec.amplspec_shifted()
         spec_phase = spec.phasespec_shifted()
         freqs = spec.freqs_shifted()
 
-        print("Отрисовка графиков...")
         pl = Plot(
             signal=combined_sig.data,
             amplsp=spec_amplitude,
@@ -153,4 +189,23 @@ class Cli:
             freqs=freqs,
             description=combined_description
         )
+        ans_audio = input("Сохранить сигнал в WAV для прослушивания? [y / n]: ").strip().lower()
+        if ans_audio == 'y':
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%H-%M-%S")
+            filename = f"audio_signal_{timestamp}.wav"
+            
+            AudioExporter.save_to_wav(filename, combined_sig.data, fs)
+        
+        print("Отрисовка графиков...")
+        
         pl.plots()
+        
+        ans_emd = input("Применить Эмпирическую Модовую Декомпозицию (EMD)? [y / n]: ").strip().lower()
+        if ans_emd == 'y':
+            from emd import EMDAnalyzer 
+            
+            emd_analyzer = EMDAnalyzer(signal_obj=combined_sig)
+            emd_analyzer.decompose(max_imf=4)
+            emd_analyzer.plot_imfs(description=combined_description)
+            

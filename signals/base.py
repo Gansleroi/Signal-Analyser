@@ -12,7 +12,11 @@ class BaseSignal:
 
     def __str__(self):
         name = self.__class__.__name__.replace("Signal", "")
-        return f"{name} {self.freq / 1000: .1f}кГц"
+
+        if self.freq < 1000:
+            return f"{name} {self.freq:.0f}Гц"
+        else:
+            return f"{name} {self.freq/1000:.1f}кГц"
 
     def __add__(self, other):
         new_sig = copy.copy(self)

@@ -1,4 +1,5 @@
 .venv/
+venv/
 env/
 pyenv/
 
@@ -7,6 +8,8 @@ __pycache__/
 *$py.class
 
 plots/
+audio/
+*.waw
 *.png
 *.jpg
 *.csv
@@ -21,3 +24,5 @@ Thumbs.db
 
 !images/
 !images/*.png
+
+.txt

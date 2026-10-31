@@ -28,4 +28,66 @@ class GaussianSignal(BaseSignal):
         return self.data
 
     def __str__(self):
-        return f"Gaussian (σ={self.sigma*1e3:.2f}мс)"    
+        return f"Gaussian (σ={self.sigma*1e3:.2f}мс)" 
+
+
+class WhiteNoiseSignal(BaseSignal):
+    def __init__(self, ampl: float) -> None:
+        super().__init__(freq=0.0, ampl=ampl)
+
+    def generate(self, t: np.ndarray) -> np.ndarray:
+        self.t = t
+        self.data = np.random.normal(0, self.ampl, len(t))
+        return self.data
+
+    def __str__(self):
+        return f"White Noise (σ={self.ampl})"
+
+
+class BrownianNoiseSignal(BaseSignal):
+    def __init__(self, ampl: float) -> None:
+        super().__init__(freq=0.0, ampl=ampl)
+
+    def generate(self, t: np.ndarray) -> np.ndarray:
+        self.t = t
+        N = len(t)
+        steps = np.random.normal(0, 1, N)
+        walk = np.cumsum(steps)
+
+        walk = walk - np.linspace(walk[0], walk[-1], N)
+
+        max_val = np.max(np.abs(walk))
+        if max_val > 0:
+            self.data = (walk / max_val) * self.ampl
+        else:
+            self.data = walk
+        return self.data
+
+    def __str__(self):
+        return f"Brownian Noise (σ={self.ampl})"
+
+
+class PinkNoiseSignal(BaseSignal):
+    def __init__(self, ampl: float) -> None:
+        super().__init__(freq=0.0, ampl=ampl)
+
+    def generate(self, t: np.ndarray) -> np.ndarray:
+        self.t = t
+        N = len(t)
+        freqs = np.fft.fftfreq(N, d=t[1]-t[0])
+        freqs[0] = 1 
+        
+        white = np.random.normal(0, 1, N) + 1j * np.random.normal(0, 1, N)
+
+        pink = white / np.sqrt(np.abs(freqs))
+        pink[0] = 0
+ 
+        self.data = np.real(np.fft.ifft(pink))
+
+        max_val = np.max(np.abs(self.data))
+        if max_val > 0:
+            self.data = (self.data / max_val) * self.ampl
+        return self.data
+
+    def __str__(self):
+        return f"Pink Noise (1/f, σ={self.ampl})"   

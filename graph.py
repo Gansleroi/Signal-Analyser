@@ -36,8 +36,26 @@ class Plot:
         axs["amp"].set_ylabel("Амплитуда, В")
         axs["amp"].grid(True)
         axs["amp"].set_yscale('log')
+        
         max_amp = np.max(self.amplsp)
-
+        if max_amp > 0:
+            sig_indices = np.where(self.amplsp > (max_amp * 0.05))[0]
+            abs_freqs = np.abs(self.freqs[sig_indices])
+            nonzero_freqs = abs_freqs[abs_freqs > 0]
+            
+            if len(nonzero_freqs) > 50:
+                view_time = 0.005
+            elif len(nonzero_freqs) > 0:
+                lowest_freq = np.min(nonzero_freqs)
+                diffs = np.diff(np.unique(nonzero_freqs))
+                min_diff = np.min(diffs) if len(diffs) > 0 else lowest_freq
+                best_freq = min(lowest_freq, min_diff)
+                period = 1 / best_freq
+                view_time = min(self.t[-1], 5 * period)
+            else:
+                view_time = min(self.t[-1], 0.01)
+                
+            axs["signal"].set_xlim(0, view_time)
 
         significant_indices = np.where(self.amplsp > (max_amp * 0.05))[0]
 
@@ -64,23 +82,29 @@ class Plot:
         axs["phase"].set_xlim(-10000, 10000)
 
         max_peak = np.max(self.amplsp)
-        threshold = max_peak * 0.05 
+        threshold = max_peak * 0.5
 
-        for i in range(2, len(self.freqs) - 2):
-            if self.amplsp[i] > threshold:
-                if self.amplsp[i] == np.max(self.amplsp[i - 2 : i + 3]):
-                    offset = 10 if clean_phase[i] >= 0 else -20
-                    align = 'left' if self.freqs[i] > 0 else 'right'
-                    shift_x = 5 if self.freqs[i] > 0 else -5
-                    axs["phase"].annotate(
-                        f"{clean_phase[i]: .0f}°",
-                        (self.freqs[i], clean_phase[i]),
-                        textcoords="offset points",
-                        xytext=(shift_x, offset),
-                        ha=align,
-                        fontweight='bold',
-                        color='darkgreen'
-                    )
+        significant_peaks_count = np.sum(self.amplsp > threshold)
+
+        if significant_peaks_count < 15:
+            for i in range(2, len(self.freqs) - 2):
+                if self.amplsp[i] > threshold:
+                    if self.amplsp[i] > self.amplsp[i-1] and self.amplsp[i] >= self.amplsp[i+1]:
+                        continue
+                    if self.amplsp[i] == np.max(self.amplsp[i-2 : i+3]):
+                        offset = 10 if clean_phase[i] >= 0 else -20
+                        align = 'left' if self.freqs[i] > 0 else 'right'
+                        shift_x = 5 if self.freqs[i] > 0 else -5
+                        
+                        axs["phase"].annotate(
+                            f"{clean_phase[i]:.0f}°",
+                            (self.freqs[i], clean_phase[i]),
+                            textcoords="offset points",
+                            xytext=(shift_x, offset),
+                            ha=align,
+                            fontweight='bold',
+                            color='darkgreen'
+                        )
 
         plt.tight_layout()
 

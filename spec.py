@@ -1,8 +1,9 @@
 import numpy as np
 
 class Spectr:
-    def __init__(self, signal_obj, use_hann: bool = False) -> None:
+    def __init__(self, signal_obj, fs: float, use_hann: bool = False) -> None:
         self.t = signal_obj.t
+        self.fs = fs
         self.signal = signal_obj.data
         self.n = len(self.t) // 2
         self.use_hann = use_hann
@@ -26,7 +27,7 @@ class Spectr:
         return self.data
 
     def freqs(self) -> np.ndarray:
-        full_freqs = np.fft.fftfreq(len(self.t), d=self.t[1] - self.t[0])
+        full_freqs = np.fft.fftfreq(len(self.t), d=1/self.fs)
         self.freqs = full_freqs[:self.n]
         return self.freqs
 
@@ -38,7 +39,7 @@ class Spectr:
         return self.amplitude
 
     def freqs_shifted(self) -> np.ndarray:
-        full_freqs = np.fft.fftfreq(len(self.t), d=self.t[1] - self.t[0])
+        full_freqs = np.fft.fftfreq(len(self.t), d=1/self.fs)
         self.freqs = np.fft.fftshift(full_freqs)
         return self.freqs
 
