@@ -14,7 +14,7 @@
    ```bash
    git clone https://github.com/Gansleroi/Signal-Analyser.git  # GitHub
    git clone https://https://gitflic.ru/asamokhin/signal-analyser.git  # GitFlic
-   cd название_репозитория
+   cd signal-analyser
 
 2. Создайте и активируйте виртуальное окружение:
     ```bash
