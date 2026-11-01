@@ -212,22 +212,38 @@ class Cli:
     def _handle_filtering(self, signal_obj: object, description: str) -> None: #Проектирование и применение фильтра
         ans_filt = input("Применить фильтрацию к сигналу? [y / n]\n")
         if ans_filt == 'y':
-            from filtrs import ButterFil
+            
+            from filtrs import IIRFilter
+            
+            ftype = input("Выберите тип фильтра (butter, cheby1, cheby2, ellip, bessel):\n")
             order = get_int("Введите порядок фильтра\n")
             btype = input("Какой фильтр нужен (lowpass, highpass, bandpass, bandstop)? Введите название на английском\n")
             cut_off1 = get_float("Введите частоту среза\n")
+            
+            rp = None
+            rs = None
+            
+            if ftype in ['cheby1', 'ellip']:
+                rp = get_float("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n")
+                
+            if ftype in ['cheby2', 'ellip']:
+                rs = get_float("Введите затухание в полосе задерживания (дБ, обычно 40 - 80):\n")
+                
             if btype in ['bandpass', 'bandstop']:
                 cut_off2 = get_float("Введите вторую частоту среза\n")
-                filtr = ButterFil(
+                filtr = IIRFilter(
                     N = order,
                     cut_off1 = cut_off1,
                     cut_off2 = cut_off2,
                     btype = btype,
-                    fs = self.fs
+                    fs = self.fs,
+                    ftype=ftype,
+                    rp=rp,
+                    rs=rs
                 )
                     
             else:
-                filtr = ButterFil(
+                filtr = IIRFilter(
                     N = order,
                     cut_off1 = cut_off1,
                     cut_off2 = None,

@@ -1,72 +1,48 @@
 from scipy import signal
 import numpy as np
-import copy
 import matplotlib.pyplot as plt
 
-class ButterFil:
-    def __init__(self, N: int, cut_off1: float,  btype: str, fs: float, cut_off2: float = None) -> None:
+class IIRFilter:
+    def __init__(self, N, cut_off1, btype, fs, ftype='butter', cut_off2=None, rp=None, rs=None):
         self.N = N
-        self.c1 = cut_off1
-        self.c2 = cut_off2
         self.btype = btype
         self.fs = fs
-        
-        if self.btype in ['bandpass', 'bandstop']:
-            if cut_off2 is None:
-                raise ValueError("Для полосового/режекторного фильтра нужны две частоты среза (cut_off2).")
+        self.ftype = ftype
+        self.rp = rp
+        self.rs = rs
+
+        if btype in ['bandpass', 'bandstop']:
             self.Wn = (cut_off1, cut_off2)
-            
         else:
             self.Wn = cut_off1
-            
+        self.design()
+
     def design(self):
-        
-        self.sos = signal.butter(
-            self.N,
-            self.Wn,
-            btype=self.btype,
-            analog=False,
-            output='sos',
-            fs=self.fs
-        )
-        
-        return self.sos
-    
-    def apply(self, signal_obj: object) -> object:
+
+        kwargs = {
+            'N': self.N, 'Wn': self.Wn, 'btype': self.btype, 
+            'ftype': self.ftype, 'output': 'sos', 'fs': self.fs
+        }
+
+        if self.rp is not None: kwargs['rp'] = self.rp
+        if self.rs is not None: kwargs['rs'] = self.rs
+            
+        self.sos = signal.iirfilter(**kwargs)
+
+    def apply(self, signal_obj):
         if not hasattr(self, 'sos'):
             self.design()
+        filtered_data = signal.sosfiltfilt(self.sos, signal_obj.data)
         
-        data = signal_obj.data
-        filtred_data = signal.sosfiltfilt(self.sos, data)
+        import copy
         new_signal = copy.deepcopy(signal_obj)
-        new_signal.data = filtred_data
+        new_signal.data = filtered_data
         return new_signal
 
-    
     def plot(self):
-        if not hasattr(self, 'sos'):
-            self.design()
-            
-        w, h = signal.sosfreqz(self.sos, worN=4096, fs=self.fs)
-        magnitude_db = 20 * np.log10(np.abs(h))
-
+        w, h = signal.sosfreqz(self.sos, worN=65536, fs=self.fs)
         plt.figure(figsize=(10, 5))
-        plt.plot(w, magnitude_db)
-        plt.title(f'АЧХ фильтра (Тип: {self.btype})')
-        plt.xlabel('Частота, Гц')
-        plt.ylabel('Усиление, дБ')
+        plt.plot(w, 20 * np.log10(np.abs(h)))
+        plt.title(f'АЧХ: {self.ftype} ({self.btype})')
         plt.grid(True)
-
-        if self.btype in ['bandpass', 'bandstop']:
-            plt.xlim(self.Wn[0] * 0.5, self.Wn[1] * 1.5)
-        else:
-            plt.xlim(0, self.Wn * 2)
-            
-        plt.ylim(-60, 5)
-        plt.axhline(-3, color='r', linestyle='--')
         plt.show()
-            
-        
-    
-    
-        
