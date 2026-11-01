@@ -12,8 +12,8 @@
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/ваш_ник/название_репозитория.git  # GitHub
-   git clone https://gitflic.ru/ваш_ник/название_репозитория.git  # GitFlic
+   git clone https://github.com/Gansleroi/Signal-Analyser.git  # GitHub
+   git clone https://https://gitflic.ru/asamokhin/signal-analyser.git  # GitFlic
    cd название_репозитория
 
 2. Создайте и активируйте виртуальное окружение:
