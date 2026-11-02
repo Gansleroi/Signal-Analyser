@@ -3,18 +3,46 @@ from signals import *
 import sys
 
 def get_float(text: str):
-        while True:
-            try:
-                return float(input(text))
-            except ValueError:
-                print("Ошибка! Введите корректное значение\n")
-                
-def get_int(text: str):
-        while True:
-            try:
-                return int(input(text))
-            except ValueError:
-                    print("Ошибка! Введите корректное значение\n")
+    while True:
+        try:
+            return float(input(text))
+        except ValueError:
+            print("Ошибка! Введите корректное числовое значение.\n")
+
+def get_float_positive(text: str) -> float:
+    while True:
+        val = get_float(text)
+        if val > 0:
+            return val
+        print("Ошибка! Значение должно быть больше нуля.\n")
+
+def get_float_range(text: str, min_val: float, max_val: float) -> float:
+    while True:
+        val = get_float(text)
+        if min_val <= val <= max_val:
+            return val
+        print(f"Ошибка! Значение должно быть в диапазоне [{min_val}, {max_val}].\n")
+
+def get_int(text: str) -> int:
+    while True:
+        try:
+            return int(input(text))
+        except ValueError:
+            print("Ошибка! Введите целое число.\n")
+
+def get_int_range(text: str, min_val: int, max_val: int) -> int:
+    while True:
+        val = get_int(text)
+        if min_val <= val <= max_val:
+            return val
+        print(f"Ошибка! Введите число от {min_val} до {max_val}.\n")
+
+def get_choice(text: str, valid: list) -> str:
+    while True:
+        val = input(text).strip().lower()
+        if val in valid:
+            return val
+        print(f"Ошибка! Допустимые варианты: {', '.join(valid)}.\n")
                     
 def snap_to_bin(desired_freq: float, fs: float, N: int) -> float:
     if desired_freq == 0:
@@ -33,9 +61,9 @@ def snap_to_bin(desired_freq: float, fs: float, N: int) -> float:
 class Cli:
     def __init__(self):
         print("Вас приветствует программа анализа сложных сигналов!")
-        self.M = get_int("Пожалуйста введите количество сигналов.\n")
-        self.fs = get_float("Введите частоту дискретизации (Гц):\n")
-        self.ts = get_float("Введите время реализации (с).\n")
+        self.M = get_int_range("Пожалуйста введите количество сигналов.\n", 1, 100)
+        self.fs = get_float_positive("Введите частоту дискретизации (Гц):\n")
+        self.ts = get_float_positive("Введите время реализации (с).\n")
             
         self.N = int(self.fs * self.ts)
         self.dt = 1 / self.fs
@@ -79,45 +107,45 @@ class Cli:
             print("11. Розовый шум (1/f)")
             print("12. Броуновский шум (1/f^2)")
     
-            form = get_int("")
-            ampl = get_float("Введите амплитуду сигнала (В)\n")
-                
+            form = get_int_range("", 1, 12)
+            ampl = get_float_positive("Введите амплитуду сигнала (В)\n")
+
             freq = 0.0
             phase = 0.0
             sigma = 0.0
-                
+
             if form not in [9, 10, 11, 12]:
-                user_freq = get_float("Введите частоту сигнала (Гц)\n")
-                   
-                freq = snap_to_bin(user_freq, self.fs, self.N) 
-                    
+                user_freq = get_float_positive("Введите частоту сигнала (Гц)\n")
+
+                freq = snap_to_bin(user_freq, self.fs, self.N)
+
                 if freq >= self.fs / 2:
                     print(f"ВНИМАНИЕ: Частота {freq:.1f} Гц слишком высока для Fs={self.fs} Гц.")
                     print(f"Максимально допустимая: {self.fs/2} Гц. Сигнал будет искажен.")
-                    
+
                 if freq != user_freq:
                     print(f"Частота скорректирована до {freq:.2f} Гц для идеального спектра (без растекания).")
-                    
+
                 phase = get_float("Введите начальную фазу сигнала в градусах.\n")
-                
+
             if form == 9:
-                sigma = get_float("Введите ширину импульса sigma (в секундах):\n")
-    
+                sigma = get_float_positive("Введите ширину импульса sigma (в секундах):\n")
+
             freq_mod = 0.0
             mod_index = 0.0
             freq_end = 0.0
             damp_index = 0.0
-                
+
             if form == 5:
-                freq_mod = get_float("Введите модулирующую частоту (Гц):\n")
-                mod_index = get_float("Введите коэффициент модуляции (от 0.0 до 1.0): \n")
+                freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
+                mod_index = get_float_range("Введите коэффициент модуляции (от 0.0 до 1.0): \n", 0.0, 1.0)
             elif form == 6:
-                freq_end = get_float("Введите КОНЕЧНУЮ частоту ЛЧМ (Гц):\n")
+                freq_end = get_float_positive("Введите КОНЕЧНУЮ частоту ЛЧМ (Гц):\n")
             elif form == 7:
-                freq_mod = get_float("Введите модулирующую частоту (Гц):\n")
-                mod_index = get_float("Введите коэффициент модуляции (например, 1.0 - 5.0):\n")
+                freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
+                mod_index = get_float_positive("Введите коэффициент модуляции (например, 1.0 - 5.0):\n")
             elif form == 8:
-                damp_index = get_float("Введите коэффициент затухания.\n")
+                damp_index = get_float_positive("Введите коэффициент затухания.\n")
     
             match form:
                 case 1:
@@ -210,45 +238,58 @@ class Cli:
         pl.plots()
         
     def _handle_filtering(self, signal_obj: object, description: str) -> None: #Проектирование и применение фильтра
-        ans_filt = input("Применить фильтрацию к сигналу? [y / n]\n")
+        ans_filt = input("Применить фильтрацию к сигналу? [y / n]\n").strip().lower()
         if ans_filt == 'y':
-            
+
             from filtrs import IIRFilter
-            
-            ftype = input("Выберите тип фильтра (butter, cheby1, cheby2, ellip, bessel):\n")
-            order = get_int("Введите порядок фильтра\n")
-            btype = input("Какой фильтр нужен (lowpass, highpass, bandpass, bandstop)? Введите название на английском\n")
-            cut_off1 = get_float("Введите частоту среза\n")
-            
+
+            nyq = self.fs / 2
+            ftype = get_choice(
+                "Выберите тип фильтра (butter, cheby1, cheby2, ellip, bessel):\n",
+                ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
+            )
+            order = get_int_range("Введите порядок фильтра\n", 1, 20)
+            btype = get_choice(
+                "Какой фильтр нужен (lowpass, highpass, bandpass, bandstop)? Введите название на английском\n",
+                ['lowpass', 'highpass', 'bandpass', 'bandstop']
+            )
+            cut_off1 = get_float_range("Введите частоту среза (Гц)\n", 0.1, nyq - 0.1)
+
             rp = None
             rs = None
-            
+
             if ftype in ['cheby1', 'ellip']:
-                rp = get_float("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n")
-                
+                rp = get_float_range("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n", 0.01, 10.0)
+
             if ftype in ['cheby2', 'ellip']:
-                rs = get_float("Введите затухание в полосе задерживания (дБ, обычно 40 - 80):\n")
-                
+                rs = get_float_range("Введите затухание в полосе задерживания (дБ, обычно 40 - 80):\n", 1.0, 150.0)
+
             if btype in ['bandpass', 'bandstop']:
-                cut_off2 = get_float("Введите вторую частоту среза\n")
+                cut_off2 = get_float_range(
+                    f"Введите вторую частоту среза (Гц, > {cut_off1})\n",
+                    cut_off1 + 0.1, nyq - 0.1
+                )
                 filtr = IIRFilter(
-                    N = order,
-                    cut_off1 = cut_off1,
-                    cut_off2 = cut_off2,
-                    btype = btype,
-                    fs = self.fs,
+                    N=order,
+                    cut_off1=cut_off1,
+                    cut_off2=cut_off2,
+                    btype=btype,
+                    fs=self.fs,
                     ftype=ftype,
                     rp=rp,
                     rs=rs
                 )
-                    
+
             else:
                 filtr = IIRFilter(
-                    N = order,
-                    cut_off1 = cut_off1,
-                    cut_off2 = None,
-                    btype = btype,
-                    fs = self.fs
+                    N=order,
+                    cut_off1=cut_off1,
+                    cut_off2=None,
+                    btype=btype,
+                    fs=self.fs,
+                    ftype=ftype,
+                    rp=rp,
+                    rs=rs
                 )
                     
             ans_plot = input("Построть АЧХ фильтра? [y / n]\n")
