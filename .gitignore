@@ -2,6 +2,7 @@
 venv/
 env/
 pyenv/
+myenv/
 
 __pycache__/
 *.py[cod]
@@ -24,5 +25,7 @@ Thumbs.db
 
 !images/
 !images/*.png
+
+*.log
 
 

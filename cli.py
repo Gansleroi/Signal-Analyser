@@ -241,35 +241,47 @@ class Cli:
         ans_filt = input("Применить фильтрацию к сигналу? [y / n]\n").strip().lower()
         if ans_filt == 'y':
 
-            from filtrs import IIRFilter
+            
 
             nyq = self.fs / 2
-            ftype = get_choice(
-                "Выберите тип фильтра (butter, cheby1, cheby2, ellip, bessel):\n",
-                ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
-            )
-            order = get_int_range("Введите порядок фильтра\n", 1, 20)
+
             btype = get_choice(
                 "Какой фильтр нужен (lowpass, highpass, bandpass, bandstop)? Введите название на английском\n",
                 ['lowpass', 'highpass', 'bandpass', 'bandstop']
             )
+
+            order = get_int_range("Введите порядок фильтра\n", 1, 100000)
+            
             cut_off1 = get_float_range("Введите частоту среза (Гц)\n", 0.1, nyq - 0.1)
 
-            rp = None
-            rs = None
-
-            if ftype in ['cheby1', 'ellip']:
-                rp = get_float_range("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n", 0.01, 10.0)
-
-            if ftype in ['cheby2', 'ellip']:
-                rs = get_float_range("Введите затухание в полосе задерживания (дБ, обычно 40 - 80):\n", 1.0, 150.0)
+            cut_off2 = None
 
             if btype in ['bandpass', 'bandstop']:
                 cut_off2 = get_float_range(
                     f"Введите вторую частоту среза (Гц, > {cut_off1})\n",
                     cut_off1 + 0.1, nyq - 0.1
                 )
-                filtr = IIRFilter(
+
+            rp = None
+            rs = None
+
+            ans_filter = get_choice("Какой тип фильтра использовать? (IIR(БИХ), FIR(КИХ)]\n", ['iir', 'fir'])
+            if ans_filter == 'iir':
+                ftype = get_choice(
+                    "Выберите тип фильтра (butter, cheby1, cheby2, ellip, bessel):\n",
+                    ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
+                )
+                
+
+                if ftype in ['cheby1', 'ellip']:
+                    rp = get_float_range("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n", 0.01, 10.0)
+                
+                if ftype in ['cheby2', 'ellip']:
+                    rs = get_float_range("Введите затухание в полосе задерживания (дБ, обычно 40 - 80):\n", 1.0, 150.0)
+
+                from filters import IIRFilter
+
+                filter = IIRFilter(
                     N=order,
                     cut_off1=cut_off1,
                     cut_off2=cut_off2,
@@ -280,32 +292,37 @@ class Cli:
                     rs=rs
                 )
 
-            else:
-                filtr = IIRFilter(
+            elif ans_filter == 'fir':
+
+                from filters import FIRFilter
+
+                beta = get_float_range("Параметр формы окна Кайзера (beta)" \
+                "Чем больше beta, тем ниже боковые лепестки и лучше подавление," \
+                " но шире переходная полоса.", 0, 20)
+
+                filter = FIRFilter(
                     N=order,
                     cut_off1=cut_off1,
-                    cut_off2=None,
+                    cut_off2=cut_off2,
                     btype=btype,
                     fs=self.fs,
-                    ftype=ftype,
-                    rp=rp,
-                    rs=rs
+                    beta=beta
                 )
                     
-            ans_plot = input("Построть АЧХ фильтра? [y / n]\n")
+            ans_plot = get_choice("Построть АЧХ фильтра? [y / n]\n", ['y', 'n'])
             if ans_plot == 'y':
-                filtr.plot()
+                filter.plot()
                     
             print("Применение фильтра...")
                     
-            filtred_sig = filtr.apply(signal_obj)
+            filtered_sig = filter.apply(signal_obj)
             
-            self._analyse_and_plot(filtred_sig, (description+' После фильтра'))
+            self._analyse_and_plot(filtered_sig, (description + ' После фильтра'))
             
-            self._audio_export(signal_obj=filtred_sig)
+            self._audio_export(signal_obj=filtered_sig)
             
     def _apply_EMD(self, signal_obj: object, description: str) -> None:  #Применение ЭМД
-        ans_emd = input("Применить Эмпирическую Модовую Декомпозицию (EMD)? [y / n]:\n").strip().lower()
+        ans_emd = get_choice("Применить Эмпирическую Модовую Декомпозицию (EMD)? [y / n]:\n", ['y', 'n'])
         if ans_emd == 'y':
             from emd import EMDAnalyzer 
             emd_analyzer = EMDAnalyzer(signal_obj=signal_obj)
@@ -313,7 +330,7 @@ class Cli:
             emd_analyzer.plot_imfs(description=description)
 
     def _audio_export(self, signal_obj: object) -> object: #Аудио экспорт
-        ans_audio = input("Сохранить сигнал в WAV для прослушивания? [y / n]:\n").strip().lower()
+        ans_audio = get_choice("Сохранить сигнал в WAV для прослушивания? [y / n]:\n", ['y', 'n'])
         if ans_audio == 'y':
             from datetime import datetime
             from exporter import AudioExporter
@@ -323,9 +340,9 @@ class Cli:
             AudioExporter.save_to_wav(filename, signal_obj.data, self.fs)
     
     def _plot_PSD(self, signal_obj: object) -> object:
-        ans_PSD = input("Построить СПМ сигнала? [y / n]\n").strip().lower()
+        ans_PSD = get_choice("Построить СПМ сигнала? [y / n]\n", ['y', 'n'])
         if ans_PSD == 'y':
-            from PSD import PSD
+            from psd import PSD
             psd = PSD(fs=self.fs, signal=signal_obj.data)
             psd.welch()
     
