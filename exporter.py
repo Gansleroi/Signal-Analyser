@@ -5,7 +5,7 @@ from scipy.signal import butter, filtfilt
 
 class AudioExporter:
     @staticmethod
-    def save_to_wav(filename: str, signal: np.ndarray, fs: float):
+    def save_to_wav(filename: str, signal: np.ndarray, fs: float) -> None:
         max_val = np.max(np.abs(signal))
         if max_val == 0:
             print("Ошибка: сигнал пуст, нечего сохранять.")

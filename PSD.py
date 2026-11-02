@@ -7,7 +7,7 @@ class PSD:
         self.fs = fs
         self.signal = signal
     
-    def welch(self):
+    def welch(self) -> None:
         f, Pxx = signal.welch(self.signal, fs=self.fs, nperseg=1024)
         
         plt.semilogy(f, Pxx)
