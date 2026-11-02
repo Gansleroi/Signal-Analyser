@@ -15,22 +15,26 @@
    git clone https://github.com/Gansleroi/Signal-Analyser.git  # GitHub
    git clone https://https://gitflic.ru/asamokhin/signal-analyser.git  # GitFlic
    cd signal-analyser
+   ```
 
 2. Создайте и активируйте виртуальное окружение:
     ```bash
     python -m venv venv
     source venv/bin/activate  # Для Linux
     # venv\Scripts\activate   # Для Windows
+    ```
 
 3. Установите необходимые зависимости:
     ```bash
     pip install -r requirements.txt
+    ```
 
 ## Использование:
 - Запустите основной файл программы:
     ```bash
     python3 main.py    # Для Linux
     # python main.py   # Для Windows
+    ```
 
 - Программа предложит вам интерактивное меню в терминале. Следуйте инструкциям:
 

@@ -13,17 +13,10 @@ class AudioExporter:
 
         normalized_signal = signal / max_val
         
-        cutoff = 20.0 
-        nyq = 0.5 * fs
-        normal_cutoff = cutoff / nyq
-        b, a = butter(4, normal_cutoff, btype='high', analog=False)
-        
         pad_len = 100
         padded_signal = np.pad(normalized_signal, (pad_len, pad_len), mode='constant')
         
-        filtered_padded = filtfilt(b, a, padded_signal)
-        
-        normalized_signal = filtered_padded[pad_len:-pad_len]
+        normalized_signal = padded_signal[pad_len:-pad_len]
             
         N = len(normalized_signal)
         fade_len = int(fs * 0.05)
