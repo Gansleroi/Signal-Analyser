@@ -1,11 +1,12 @@
 from .base import BaseSignal
 import numpy as np
+from scipy.signal import square
 
 class SineSignal(BaseSignal):
 
     def generate(self, t: np.ndarray) -> np.ndarray:
         self.t = t
-        self.data = (self.ampl * np.cos(
+        self.data = (self.ampl * np.sin(
             2 * np.pi * self.freq * t + self.phase * np.pi / 180))
         return self.data
 
@@ -13,8 +14,10 @@ class SquareSignal(BaseSignal):
 
     def generate(self, t: np.ndarray) -> np.ndarray:
         self.t = t
-        self.data = (self.ampl * np.sign(
-            np.sin(2 * np.pi * self.freq * t + self.phase * np.pi / 180)))
+        self.data = self.ampl * square(
+            2 * np.pi * self.freq * t +
+            self.phase * np.pi / 180
+        )
         return self.data
 
 class TriangleSignal(BaseSignal):
