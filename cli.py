@@ -342,7 +342,7 @@ class Cli:
     def _plot_PSD(self, signal_obj: object) -> object:
         ans_PSD = get_choice("Построить СПМ сигнала? [y / n]\n", ['y', 'n'])
         if ans_PSD == 'y':
-            from psd import PSD
+            from PSD import PSD
             psd = PSD(fs=self.fs, signal=signal_obj.data)
             psd.welch()
     
