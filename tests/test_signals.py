@@ -221,4 +221,18 @@ def test_frequency_resolution():
 
     assert freqs[1] - freqs[0] == pytest.approx(1.0)
     assert freqs[-1] == pytest.approx(Fs / 2)
+
+
+def test_FM_signal():
+
+    s = FMSignal(
+        ampl=4.0,
+        freq=440.0,
+        phase=0.0,
+        ampl_car=8.0,
+        freq_car=880.0,
+        freq_dev=1e3
+    )
+
+    assert s.data != 0
     

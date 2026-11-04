@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import signal
 from matplotlib import pyplot as plt
+import os
+from datetime import datetime
 
 class PSD:
     def __init__(self, fs: float, signal: np.ndarray) -> None:
@@ -15,4 +17,13 @@ class PSD:
         plt.xlabel("Частота, Гц")
         plt.ylabel("СПМ")
         plt.grid(True)
+
+        folder_name = "plots"
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = os.path.join(folder_name, f"emd_{now}.png")
+        plt.savefig(filename, dpi=150)
+        print(f"График СПМ сохранен в файл: {filename}")
+
         plt.show()

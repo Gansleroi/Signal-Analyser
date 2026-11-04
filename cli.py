@@ -72,8 +72,8 @@ class Cli:
         
         combined_sig, description = self._create_combined_signal()  #Генерация сигналов
         
-        ans_hann = input("Применить окно Ханна для уменьшения растекания? [y / n]:\n")
-        self.use_hann = ans_hann.strip().lower() == 'y'
+        ans_hann = get_choice("Применить окно Ханна для уменьшения растекания? [y / n]:\n", ['y', 'n'])
+        self.use_hann = ans_hann == 'y'
         
         self._analyse_and_plot(signal_obj=combined_sig, description=description)  #Анализ и построение графиков
         
@@ -106,8 +106,9 @@ class Cli:
             print("10. Белый шум")
             print("11. Розовый шум (1/f)")
             print("12. Броуновский шум (1/f^2)")
+            print("13. ЧМ (Частотная модуляция")
     
-            form = get_int_range("", 1, 12)
+            form = get_int_range("", 1, 13)
             ampl = get_float_positive("Введите амплитуду сигнала (В)\n")
 
             freq = 0.0
@@ -135,17 +136,24 @@ class Cli:
             mod_index = 0.0
             freq_end = 0.0
             damp_index = 0.0
+            freq_dev = 0.0
+            акуй_сфк = 0.0
+            ampl_car = 0.0
 
             if form == 5:
                 freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
                 mod_index = get_float_range("Введите коэффициент модуляции (от 0.0 до 1.0): \n", 0.0, 1.0)
             elif form == 6:
-                freq_end = get_float_positive("Введите КОНЕЧНУЮ частоту ЛЧМ (Гц):\n")
+                freq_end = get_float_positive("Введите конечную частоту ЛЧМ (Гц):\n")
             elif form == 7:
                 freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
                 mod_index = get_float_positive("Введите коэффициент модуляции (например, 1.0 - 5.0):\n")
             elif form == 8:
                 damp_index = get_float_positive("Введите коэффициент затухания.\n")
+            elif form == 13:
+                freq_car = get_float_positive("Введите частоту несущей.\n")
+                ampl_car = get_float_positive("Введите амплитуду несущей.\n")
+                freq_dev = get_float_positive("Введите девиацию частоты\n")
     
             match form:
                 case 1:
@@ -165,19 +173,23 @@ class Cli:
                     signals.append(signal)
     
                 case 5:
-                    signal = AMSignal(freq=freq, ampl=ampl, freq_mod=freq_mod, mod_index=mod_index, phase=phase)
+                    signal = AMSignal(freq=freq, ampl=ampl, freq_mod=freq_mod,
+                                    mod_index=mod_index, phase=phase)
                     signals.append(signal)
         
                 case 6:
-                    signal = ChirpSignal(freq_start=freq, freq_end=freq_end, ampl=ampl, phase=phase)
+                    signal = ChirpSignal(freq_start=freq, freq_end=freq_end,
+                                         ampl=ampl, phase=phase)
                     signals.append(signal)
 
                 case 7:
-                    signal = PMSignal(freq=freq, ampl=ampl, freq_mod=freq_mod, mod_index=mod_index, phase=phase)
+                    signal = PMSignal(freq=freq, ampl=ampl, freq_mod=freq_mod,
+                                      mod_index=mod_index, phase=phase)
                     signals.append(signal)
     
                 case 8:
-                    signal = DampedSineSignal(freq=freq, ampl=ampl, damping=damp_index, phase=phase)
+                    signal = DampedSineSignal(freq=freq, ampl=ampl,
+                                              damping=damp_index, phase=phase)
                     signals.append(signal)
                     
                 case 9:
@@ -194,6 +206,11 @@ class Cli:
 
                 case 12:
                     signal = BrownianNoiseSignal(ampl=ampl)
+                    signals.append(signal)
+
+                case 13:
+                    signal = FMSignal(ampl=ampl, freq=freq, phase=phase,
+                                      freq_dev=freq_dev, freq_car=freq_car, ampl_car=ampl_car)
                     signals.append(signal)
 
                 case _:
@@ -227,6 +244,7 @@ class Cli:
         freqs = spec.freqs_shifted()
         
         pl = Plot(
+            fs=self.fs,
             signal=signal_obj.data,
             amplsp=spec_amplitude,
             phasesp=spec_phase,
@@ -238,10 +256,8 @@ class Cli:
         pl.plots()
         
     def _handle_filtering(self, signal_obj: object, description: str) -> None: #Проектирование и применение фильтра
-        ans_filt = input("Применить фильтрацию к сигналу? [y / n]\n").strip().lower()
+        ans_filt = get_choice("Применить фильтрацию к сигналу? [y / n]\n", ['y', 'n'])
         if ans_filt == 'y':
-
-            
 
             nyq = self.fs / 2
 

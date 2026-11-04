@@ -5,7 +5,7 @@ from datetime import datetime
 from PyEMD import EMD
 
 class EMDAnalyzer:
-    def __init__(self, signal_obj) -> None:
+    def __init__(self, signal_obj: object) -> None:
         self.t = signal_obj.t
         self.signal = signal_obj.data
         self.imfs = None

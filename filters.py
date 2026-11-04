@@ -2,6 +2,8 @@ import copy
 from scipy import signal
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+from datetime import datetime
 
 class IIRFilter():
 
@@ -40,7 +42,7 @@ class IIRFilter():
     def apply(self, signal_obj: object) -> object:
         if not hasattr(self, 'sos'):
             self.design()
-        filtered_data = signal.sosfiltfilt(self.b, signal_obj.data)
+        filtered_data = signal.sosfiltfilt(self.sos, signal_obj.data)
         new_signal = copy.deepcopy(signal_obj)
         new_signal.data = filtered_data
         return new_signal
@@ -66,8 +68,17 @@ class IIRFilter():
         plt.ylabel('Фаза (радианы)')
         plt.grid(True)
         plt.xlim([0, self.fs / 2])
-    
+
+        plt.title("БИХ фильтр")
         plt.tight_layout()
+
+        folder_name = "plots"
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = os.path.join(folder_name, f"emd_{now}.png")
+        plt.savefig(filename, dpi=150)
+        print(f"График АЧХ и ФЧХ фильтра сохранен в файл: {filename}")
 
         if show:
             plt.show()
@@ -134,8 +145,17 @@ class FIRFilter():
             plt.ylabel('Фаза (радианы)')
             plt.grid(True)
             plt.xlim([0, self.fs / 2])
-    
+
+            plt.title("КИХ фильтр")
             plt.tight_layout()
+
+            folder_name = "plots"
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+            now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = os.path.join(folder_name, f"emd_{now}.png")
+            plt.savefig(filename, dpi=150)
+            print(f"График АЧХ и ФЧХ фильтра сохранен в файл: {filename}")
 
             if show:
                 plt.show()
