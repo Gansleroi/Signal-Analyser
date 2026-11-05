@@ -5,7 +5,8 @@ from datetime import datetime
 
 class Plot:
 
-    def __init__(self, fs: float ,signal: np.ndarray, amplsp: np.ndarray, phasesp: np.ndarray, t: np.ndarray, freqs: np.ndarray, description: str = "Сложный сигнал") -> None:
+    def __init__(self, fs: float ,signal: np.ndarray, amplsp: np.ndarray,
+                 phasesp: np.ndarray, t: np.ndarray, freqs: np.ndarray, description: str = "Сложный сигнал") -> None:
         self.signal = signal
         self.amplsp = amplsp
         self.phasesp = phasesp

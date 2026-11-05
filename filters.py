@@ -85,7 +85,8 @@ class IIRFilter():
 
 class FIRFilter():
      
-    def __init__(self,N: int, cut_off1: float, cut_off2: float, btype: str, fs: float, beta = None) -> None:
+    def __init__(self,N: int, cut_off1: float,
+                 cut_off2: float, btype: str, fs: float, beta = None) -> None:
         self.numtaps = N + 1
         self.beta = beta
         self.fs = fs

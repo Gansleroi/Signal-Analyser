@@ -137,7 +137,7 @@ class Cli:
             freq_end = 0.0
             damp_index = 0.0
             freq_dev = 0.0
-            акуй_сфк = 0.0
+            freq_car = 0.0
             ampl_car = 0.0
 
             if form == 5:
