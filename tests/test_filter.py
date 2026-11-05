@@ -15,7 +15,7 @@ from filters import IIRFilter, FIRFilter
 def IIRFilter_param():
 
     return {
-        'N': 4,
+        'n': 4,
         'cut_off1': 420,
         'cut_off2': 460,
         'btype': 'bandpass',
@@ -29,7 +29,7 @@ def IIRFilter_param():
 def FIRFilter_param():
 
     return {
-        'N': 4,
+        'n': 4,
         'cut_off1': 420,
         'cut_off2': 460,
         'btype': 'bandpass',

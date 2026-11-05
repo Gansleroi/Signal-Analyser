@@ -1,4 +1,3 @@
-import numpy as np
 from signals import *
 import sys
 
@@ -44,11 +43,11 @@ def get_choice(text: str, valid: list) -> str:
             return val
         print(f"Ошибка! Допустимые варианты: {', '.join(valid)}.\n")
                     
-def snap_to_bin(desired_freq: float, fs: float, N: int) -> float:
+def snap_to_bin(desired_freq: float, fs: float, n: int) -> float:
     if desired_freq == 0:
         return 0.0
     
-    df = fs / N
+    df = fs / n
     k = round(desired_freq / df)
     
     if k == 0:
@@ -79,9 +78,9 @@ class Cli:
         
         self._audio_export(signal_obj=combined_sig) #Создание .waw файла
         
-        self._plot_PSD(signal_obj=combined_sig)  #Построение СПМ
+        self._plot_psd(signal_obj=combined_sig)  #Построение СПМ
         
-        self._apply_EMD(signal_obj=combined_sig, description=description)  #Применение ЭМД
+        self._apply_emd(signal_obj=combined_sig, description=description)  #Применение ЭМД
         
         self._handle_filtering(signal_obj=combined_sig, description=description)  #Проектирование и применение фильтра
         
@@ -118,7 +117,7 @@ class Cli:
             if form not in [9, 10, 11, 12]:
                 user_freq = get_float_positive("Введите частоту сигнала (Гц)\n")
 
-                freq = snap_to_bin(user_freq, self.fs, self.N)
+                freq = snap_to_bin(desired_freq=user_freq, fs=self.fs, n=self.N)
 
                 if freq >= self.fs / 2:
                     print(f"ВНИМАНИЕ: Частота {freq:.1f} Гц слишком высока для Fs={self.fs} Гц.")
@@ -293,7 +292,7 @@ class Cli:
                     rp = get_float_range("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n", 0.01, 10.0)
                 
                 if ftype in ['cheby2', 'ellip']:
-                    rs = get_float_range("Введите затухание в полосе задерживания (дБ, обычно 40 - 80):\n", 1.0, 150.0)
+                    rs = get_float_range("Введите пульсации в полосе задерживания (дБ, обычно 40 - 80):\n", 1.0, 150.0)
 
                 from filters import IIRFilter
 
@@ -312,8 +311,8 @@ class Cli:
 
                 from filters import FIRFilter
 
-                beta = get_float_range("Параметр формы окна Кайзера (beta)" \
-                "Чем больше beta, тем ниже боковые лепестки и лучше подавление," \
+                beta = get_float_range("Параметр формы окна Кайзера (beta)" 
+                "Чем больше beta, тем ниже боковые лепестки и лучше подавление," 
                 " но шире переходная полоса.", 0, 20)
 
                 filter = FIRFilter(
@@ -324,11 +323,14 @@ class Cli:
                     fs=self.fs,
                     beta=beta
                 )
+
+            del ans_filter
                     
             ans_plot = get_choice("Построть АЧХ фильтра? [y / n]\n", ['y', 'n'])
             if ans_plot == 'y':
                 filter.plot()
-                    
+
+            del ans_plot
             print("Применение фильтра...")
                     
             filtered_sig = filter.apply(signal_obj)
@@ -336,14 +338,15 @@ class Cli:
             self._analyse_and_plot(filtered_sig, (description + ' После фильтра'))
             
             self._audio_export(signal_obj=filtered_sig)
-            
-    def _apply_EMD(self, signal_obj: object, description: str) -> None:  #Применение ЭМД
+        del ans_filt
+    def _apply_emd(self, signal_obj: object, description: str) -> None:  #Применение ЭМД
         ans_emd = get_choice("Применить Эмпирическую Модовую Декомпозицию (EMD)? [y / n]:\n", ['y', 'n'])
         if ans_emd == 'y':
-            from emd import EMDAnalyzer 
+            from emd import EMDAnalyzer
             emd_analyzer = EMDAnalyzer(signal_obj=signal_obj)
             emd_analyzer.decompose(max_imf=4)
             emd_analyzer.plot_imfs(description=description)
+            emd_analyzer.plot_imf_spectra()
 
     def _audio_export(self, signal_obj: object) -> object: #Аудио экспорт
         ans_audio = get_choice("Сохранить сигнал в WAV для прослушивания? [y / n]:\n", ['y', 'n'])
@@ -355,9 +358,9 @@ class Cli:
         
             AudioExporter.save_to_wav(filename, signal_obj.data, self.fs)
     
-    def _plot_PSD(self, signal_obj: object) -> object:
-        ans_PSD = get_choice("Построить СПМ сигнала? [y / n]\n", ['y', 'n'])
-        if ans_PSD == 'y':
+    def _plot_psd(self, signal_obj: object) -> object:
+        ans_psd = get_choice("Построить СПМ сигнала? [y / n]\n", ['y', 'n'])
+        if ans_psd == 'y':
             from PSD import PSD
             psd = PSD(fs=self.fs, signal=signal_obj.data)
             psd.welch()
