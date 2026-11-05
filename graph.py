@@ -1,128 +1,162 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.signal import find_peaks
+from autoscale import (choose_freq_limit, choose_time_window,
+                       find_spectral_lines, follow_x, log_ylim)
+
 
 class Plot:
+    STEM_LIMIT = 1500
+    PHASE_REL_THRESHOLD = 1e-2
+    ANNOTATION_REL_THRESHOLD = 0.5
+    MAX_ANNOTATIONS = 10
 
-    def __init__(self, fs: float ,signal: np.ndarray, amplsp: np.ndarray,
-                 phasesp: np.ndarray, t: np.ndarray, freqs: np.ndarray, description: str = "Сложный сигнал") -> None:
+    def __init__(self, fs: float, signal: np.ndarray, amplsp: np.ndarray,
+                 phasesp: np.ndarray, t: np.ndarray, freqs: np.ndarray,
+                 description: str = "Сложный сигнал",
+                 time_window: tuple[float, float] | None = None,
+                 freq_limit: float | None = None) -> None:
+
         self.signal = signal
         self.amplsp = amplsp
         self.phasesp = phasesp
         self.t = t
         self.fs = fs
         self.freqs = freqs
-        self.n = len(t) // 2
         self.description = description
+        self.time_window = time_window
+        self.freq_limit = freq_limit
 
-    def plots(self) -> None:
+    def plots(self, show: bool = True, save: bool = True):
+        fig, axs = plt.subplot_mosaic(
+            [["signal", "signal"], ["amp", "phase"]],
+            figsize=(14, 10), layout="constrained",
+        )
 
-        mosaic = [
-            ["signal", "signal"],
-            ["amp", "phase"]
-        ]
+        axs["phase"].sharex(axs["amp"])
 
-        fig, axs = plt.subplot_mosaic(mosaic, figsize=(14, 10))
+        self._plot_signal(axs["signal"])
+        self._plot_amplitude(axs["amp"])
+        self._plot_phase(axs["phase"], axs["amp"])
 
-        # --- 1. ВЕРХНИЙ ГРАФИК (Сигнал) ---
-        axs["signal"].plot(self.t, self.signal, color='tab:blue')
-        axs["signal"].set_title(f"Сигнал: {self.description}", fontsize=14)
-        axs["signal"].set_xlabel("Время, с")
-        axs["signal"].set_ylabel("Амплитуда, В")
-        axs["signal"].grid(True)
+        if save:
+            self._save(fig)
+        if show:
+            plt.show()
+            plt.close(fig)
+        return fig
 
-        axs["amp"].stem(self.freqs, self.amplsp, basefmt=" ", linefmt='tab:orange', markerfmt='o')
-        axs["amp"].set_title("Амплитудный спектр", fontsize=12)
-        axs["amp"].set_xlabel("Частота, Гц")
-        axs["amp"].set_ylabel("Амплитуда, В")
-        axs["amp"].grid(True)
-        axs["amp"].set_yscale('log')
-        
-        max_amp = np.max(self.amplsp)
-        if max_amp > 0:
-            sig_indices = np.where(self.amplsp > (max_amp * 0.05))[0]
-            abs_freqs = np.abs(self.freqs[sig_indices])
-            nonzero_freqs = abs_freqs[abs_freqs > 0]
-            
-            if len(nonzero_freqs) > 50:
-                view_time = 0.005
-            elif len(nonzero_freqs) > 0:
-                lowest_freq = np.min(nonzero_freqs)
-                diffs = np.diff(np.unique(nonzero_freqs))
-                min_diff = np.min(diffs) if len(diffs) > 0 else lowest_freq
-                best_freq = min(lowest_freq, min_diff)
-                period = 1 / best_freq
-                view_time = min(self.t[-1], 5 * period)
-            else:
-                view_time = min(self.t[-1], 0.01)
-                
-            axs["signal"].set_xlim(0, view_time)
+    def _plot_signal(self, ax) -> None:
+        ax.plot(self.t, self.signal, color="tab:blue", linewidth=1.0)
+        ax.set_title(f"Сигнал: {self.description}", fontsize=14)
+        ax.set_xlabel("Время, с")
+        ax.set_ylabel("Амплитуда, В")
+        ax.grid(True)
 
-        limit = min(self.fs / 2, 20000)
+        window = self.time_window or choose_time_window(self.t, self.signal)
 
-        axs["amp"].set_xlim(-limit, limit)
-        axs["phase"].set_xlim(-limit, limit)
+        follow_x(ax, margin=0.08)
+        ax.set_xlim(*window)
 
-        clean_phase = self.phasesp.copy()
-        clean_phase[self.amplsp < 0.1] = 0
+    def _plot_amplitude(self, ax) -> None:
+        freqs, amps = np.asarray(self.freqs), np.asarray(self.amplsp)
+        limit = self.freq_limit or choose_freq_limit(freqs, amps, self.fs)
 
-        axs["phase"].stem(self.freqs, clean_phase, basefmt=" ", linefmt='tab:green', markerfmt='s')
-        axs["phase"].set_title("Фазовый спектр", fontsize=12)
-        axs["phase"].set_xlabel("Частота, Гц")
-        axs["phase"].set_ylabel("Фаза, градусы")
-        axs["phase"].set_ylim(-190, 190)
-        axs["phase"].grid(True)
-        axs["phase"].set_xlim(-10000, 10000)
+        ax.set_yscale("log")
+        visible = np.abs(freqs) <= limit
+        peak = np.nanmax(amps) if amps.size else 0.0
 
-        max_peak = np.max(self.amplsp)
-        threshold = max_peak * 0.5
+        if visible.sum() <= self.STEM_LIMIT:
 
-        if max_peak > 0:
+            base = peak * 1e-12 if peak > 0 else 1e-12
+            stem = ax.stem(freqs[visible], amps[visible], basefmt=" ",
+                           linefmt="tab:orange", markerfmt="o", bottom=base)
+            stem.markerline.set_markersize(3)
+        else:
+            ax.plot(freqs[visible], amps[visible], color="tab:orange",
+                    linewidth=0.8)
 
-            for i in range(2, len(self.freqs) - 2):
+        ax.set_title("Амплитудный спектр", fontsize=12)
+        ax.set_xlabel("Частота, Гц")
+        ax.set_ylabel("Амплитуда, В")
+        ax.grid(True, which="both", alpha=0.4)
 
-                if self.amplsp[i] <= threshold:
-                    continue
+        def y_limits(a):
+            lo, hi = sorted(a.get_xlim())
+            m = (freqs >= lo) & (freqs <= hi)
+            return log_ylim(amps[m])
 
-                if not (
-                        self.amplsp[i] > self.amplsp[i - 1]
-                        and self.amplsp[i] >= self.amplsp[i + 1]
-                ):
-                    continue
+        follow_x(ax, compute=y_limits)
+        ax.set_xlim(-limit, limit)
 
-                if self.amplsp[i] != np.max(self.amplsp[i - 2:i + 3]):
-                    continue
+    def _plot_phase(self, ax, ax_amp) -> None:
+        freqs = np.asarray(self.freqs)
+        amps = np.asarray(self.amplsp)
+        phase = np.asarray(self.phasesp)
 
-                phase_value = clean_phase[i] + 90
+        limit = max(abs(v) for v in ax_amp.get_xlim())
+        peak = np.nanmax(amps) if amps.size else 0.0
+        significant = (
+            (np.abs(freqs) <= limit) & np.isfinite(phase)
+            & (amps > self.PHASE_REL_THRESHOLD * peak)
+        )
 
-                phase_value = (phase_value + 180) % 360 - 180
+        lines = find_spectral_lines(amps, rel_threshold=self.PHASE_REL_THRESHOLD,
+                                    max_lines=200)
+        if lines is not None:
 
-                offset = 10 if phase_value >= 0 else -20
+            lines = lines[significant[lines]]
+            stem = ax.stem(freqs[lines], phase[lines], basefmt=" ",
+                           linefmt="tab:green", markerfmt="s")
+            stem.markerline.set_markersize(3 if len(lines) > 40 else 6)
+        else:
+            ax.plot(freqs[significant], phase[significant], ".",
+                    color="tab:green", markersize=2)
 
-                align = 'left' if self.freqs[i] > 0 else 'right'
-                shift_x = 5 if self.freqs[i] > 0 else -5
+        ax.set_title("Фазовый спектр", fontsize=12)
+        ax.set_xlabel("Частота, Гц")
+        ax.set_ylabel("Фаза, градусы")
+        ax.set_ylim(-190, 190)
+        ax.set_yticks(np.arange(-180, 181, 90))
+        ax.grid(True)
 
-                axs["phase"].annotate(
-                    text=f"{phase_value:.0f}°",
-                    xy=(self.freqs[i], clean_phase[i]),
-                    textcoords="offset points",
-                    xytext=(shift_x, offset),
-                    ha=align,
-                    fontweight='bold',
-                    color='darkgreen',
-                    fontsize=9,
-                    zorder=10
-                )
+        #if peak > 0:
+            #self._annotate_phase_peaks(ax, freqs, amps, phase, limit, peak)
 
-        plt.tight_layout()
+    def _annotate_phase_peaks(self, ax, freqs, amps, phase, limit, peak):
+        idx, _ = find_peaks(amps, height=self.ANNOTATION_REL_THRESHOLD * peak,
+                            distance=3)
+        idx = idx[(np.abs(freqs[idx]) <= limit) & np.isfinite(phase[idx])]
+        order = idx[np.argsort(amps[idx])[::-1]]
+        min_gap = 0.04 * 2 * limit
+        placed = []
 
+        for i in order:
+            f = freqs[i]
+            if len(placed) >= self.MAX_ANNOTATIONS:
+                break
+            if any(abs(f - p) < min_gap for p in placed):
+                continue
+            placed.append(f)
+
+            value = phase[i] + 90.0 * np.sign(f)
+            value = float(np.round((value + 180.0) % 360.0 - 180.0)) + 0.0
+            ax.annotate(
+                f"{value:.0f}°",
+                xy=(f, phase[i]),
+                textcoords="offset points",
+                xytext=(5 if f > 0 else -5, 10 if value >= 0 else -20),
+                ha="left" if f > 0 else "right",
+                fontweight="bold", color="darkgreen", fontsize=9, zorder=10,
+            )
+
+    @staticmethod
+    def _save(fig) -> None:
         folder_name = "plots"
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
+        os.makedirs(folder_name, exist_ok=True)
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = os.path.join(folder_name, f"plot_{now}.png")
-        plt.savefig(filename, dpi=150)
+        fig.savefig(filename, dpi=150)
         print(f"График сохранен в файл: {filename}")
-
-        plt.show()

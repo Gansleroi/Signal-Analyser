@@ -56,22 +56,14 @@ class Spectr:
         return self.amplitude
 
     def phasespec_shifted(self) -> np.ndarray:
+        if not hasattr(self, 'data'):
+            self.spec()
 
-        self.fft_data = np.fft.fft(self.data)
-
-        amplitude = np.abs(self.fft_data) / (
-                len(self.data) * self.norm_factor
-        )
-
-        full_phase = np.degrees(
-            np.angle(self.fft_data)
-        )
+        amplitude = np.abs(self.data) / (len(self.signal) * self.norm_factor)
+        full_phase = np.degrees(np.angle(self.data))
 
         threshold = np.max(amplitude) * 1e-6
-
         full_phase[amplitude < threshold] = np.nan
 
         self.phase_spectrum = np.fft.fftshift(full_phase)
-
         return self.phase_spectrum
-

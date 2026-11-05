@@ -42,6 +42,13 @@ def get_choice(text: str, valid: list) -> str:
         if val in valid:
             return val
         print(f"Ошибка! Допустимые варианты: {', '.join(valid)}.\n")
+
+def get_int_even(text: str, error ,min_val: int, max_val: int) -> int:
+    while True:
+        val = get_int_range(text, min_val=min_val, max_val=max_val)
+        if val % 2 == 0:
+            return val
+        print(error)
                     
 def snap_to_bin(desired_freq: float, fs: float, n: int) -> float:
     if desired_freq == 0:
@@ -261,12 +268,23 @@ class Cli:
 
             nyq = self.fs / 2
 
+            ans_filter = get_choice("Какой тип фильтра использовать? (IIR(БИХ), FIR(КИХ)]\n", ['iir', 'fir'])
+
             btype = get_choice(
                 "Какой фильтр нужен (lowpass, highpass, bandpass, bandstop)? Введите название на английском\n",
                 ['lowpass', 'highpass', 'bandpass', 'bandstop']
             )
 
-            order = get_int_range("Введите порядок фильтра\n", 1, 100000)
+            if btype == 'highpass' or btype == 'bandstop' and ans_filter == 'fir':
+                order = get_int_even('Введите порядок фильтра\n',
+                                     "Для такого типа фильтра порядок должен быть чётным!",
+                                     0, 100000)
+
+            elif btype == 'lowpass' or btype == 'bandpass' and ans_filter == 'fir':
+                order = get_int_range("Введите порядок фильтра\n", 1, 100000)
+
+            elif ans_filter == 'iir':
+                order = get_int_range("Введите порядок фильтра\n", 1, 100000)
             
             cut_off1 = get_float_range("Введите частоту среза (Гц)\n", 0.1, nyq - 0.1)
 
@@ -281,7 +299,6 @@ class Cli:
             rp = None
             rs = None
 
-            ans_filter = get_choice("Какой тип фильтра использовать? (IIR(БИХ), FIR(КИХ)]\n", ['iir', 'fir'])
             if ans_filter == 'iir':
                 ftype = get_choice(
                     "Выберите тип фильтра (butter, cheby1, cheby2, ellip, bessel):\n",

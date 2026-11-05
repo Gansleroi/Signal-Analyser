@@ -1,7 +1,6 @@
 import os
 import numpy as np
 from scipy.io import wavfile
-from scipy.signal import butter, filtfilt
 
 class AudioExporter:
     @staticmethod
@@ -12,12 +11,7 @@ class AudioExporter:
             return
 
         normalized_signal = signal / max_val
-        
-        pad_len = 100
-        padded_signal = np.pad(normalized_signal, (pad_len, pad_len), mode='constant')
-        
-        normalized_signal = padded_signal[pad_len:-pad_len]
-            
+
         N = len(normalized_signal)
         fade_len = int(fs * 0.05)
         if fade_len > 0 and N > 2 * fade_len:

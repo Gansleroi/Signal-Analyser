@@ -5,48 +5,62 @@ import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 
+from autoscale import follow_x
+
 class Filter:
 
-    def plot(self, show: bool = True) -> None:
-        if self.b_or_sos():
+    DB_FLOOR = -120.0
+
+    def view_range(self) -> tuple[float, float]:
+
+        nyq = self.fs / 2.0
+        edges = np.atleast_1d(self.Wn).astype(float)
+        if self.btype in ('lowpass', 'highpass'):
+            return 0.0, min(nyq, 4.0 * edges[0])
+        f1, f2 = edges
+        width = f2 - f1
+        return max(0.0, f1 - 3 * width), min(nyq, f2 + 3 * width)
+
+    def plot(self, show: bool = True, zoom: bool = True):
+        if self.sos_or_b():
             w, h = signal.freqz(self.b, worN=65536, fs=self.fs)
         else:
             w, h = signal.sosfreqz(self.sos, worN=65536, fs=self.fs)
-        mag = np.abs(h)
-        mag_db = 20 * np.log10(np.maximum(mag, 1e-10))
+        mag_db = 20 * np.log10(np.maximum(np.abs(h), 1e-10))
 
-        plt.figure(figsize=(12, 6))
-        plt.subplot(2, 1, 1)
-        plt.plot(w, mag_db)
-        plt.title(f'АЧХ')
-        plt.xlabel('Частота (Гц)')
-        plt.ylabel('Амплитуда (дБ)')
-        plt.grid(True)
-        plt.xlim(0, int(self.fs / 2))
+        fig, (ax_mag, ax_phase) = plt.subplots(
+            2, 1, figsize=(12, 6), sharex=True, layout="constrained")
 
-        plt.subplot(2, 1, 2)
-        plt.plot(w, np.unwrap(np.angle(h)))
-        plt.title('ФЧХ')
-        plt.xlabel('Частота (Гц)')
-        plt.ylabel('Фаза (радианы)')
-        plt.grid(True)
-        plt.xlim(0, int(self.fs / 2))
+        ax_mag.plot(w, mag_db)
+        ax_mag.set_title('АЧХ')
+        ax_mag.set_ylabel('Амплитуда (дБ)')
+        ax_mag.grid(True)
 
-        plt.suptitle(self.__str__())
-        plt.tight_layout()
+        ax_phase.plot(w, np.unwrap(np.angle(h)))
+        ax_phase.set_title('ФЧХ')
+        ax_phase.set_xlabel('Частота (Гц)')
+        ax_phase.set_ylabel('Фаза (радианы)')
+        ax_phase.grid(True)
+
+        fig.suptitle(self.__str__())
+
+        follow_x(ax_mag, margin=0.05, clip=(self.DB_FLOOR, None))
+        follow_x(ax_phase, margin=0.05)
+        ax_mag.set_xlim(*(self.view_range() if zoom else (0, self.fs / 2)))
 
         folder_name = "plots"
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
+        os.makedirs(folder_name, exist_ok=True)
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = os.path.join(folder_name, f"emd_{now}.png")
-        plt.savefig(filename, dpi=150)
+        filename = os.path.join(folder_name, f"filter_{now}.png")
+        fig.savefig(filename, dpi=150)
         print(f"График АЧХ и ФЧХ фильтра сохранен в файл: {filename}")
 
         if show:
             plt.show()
+            plt.close(fig)
+        return fig
 
-    def b_or_sos(self):
+    def sos_or_b(self):
         if self.ftype == None:
             return True
         else:
@@ -127,7 +141,7 @@ class IIRFilter(Filter):
         self.sos = signal.iirfilter(**kwargs)
 
     def apply(self, signal_obj: object) -> object:
-        if not hasattr(self, 'sos'):
+        if self.sos is None:
             self.design()
         filtered_data = signal.sosfiltfilt(self.sos, signal_obj.data)
         new_signal = copy.deepcopy(signal_obj)
@@ -170,7 +184,7 @@ class FIRFilter(Filter):
         elif self.btype == 'bandstop':
             desc = f'Режекторный на {self.Wn}'
 
-        return "КИХ фильтр" + desc
+        return "КИХ фильтр " + desc
 
 
     def design(self):
@@ -184,7 +198,7 @@ class FIRFilter(Filter):
 
 
     def apply(self, signal_obj: object) -> object:
-        if not hasattr(self, 'sos'):
+        if self.b is None:
             self.design()
 
         a = 1.0

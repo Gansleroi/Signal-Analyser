@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 from PyEMD import EMD
 
+from autoscale import choose_freq_limit, choose_time_window, follow_x
+
 
 class EMDAnalyzer:
     def __init__(self, signal_obj: object) -> None:
@@ -64,9 +66,8 @@ class EMDAnalyzer:
 
         axs[-1].set_xlabel("Время, с")
 
-        view_time = self.t[-1] * 0.05
-        for ax in axs:
-            ax.set_xlim(0, view_time)
+        follow_x(list(axs), margin=0.08)
+        axs[0].set_xlim(*choose_time_window(self.t, self.signal))
 
         plt.tight_layout()
 
@@ -108,6 +109,21 @@ class EMDAnalyzer:
         )
         axs = axs.ravel()
 
+        spectra = []
+        for imf in self.imfs:
+            x = np.asarray(imf, dtype=float)
+            x = x - np.mean(x)
+            sp = np.abs(np.fft.rfft(x * window, n=n_fft))
+            if len(sp) > 0:
+                sp[0] = 0.0
+            spectra.append(sp)
+
+        if max_frequency is not None:
+            freq_limit = min(max_frequency, fs / 2)
+        else:
+            freq_limit = max(choose_freq_limit(frequencies, sp, fs)
+                             for sp in spectra)
+
         print("\nДоминирующие частоты IMF:")
         print(f"Частота дискретизации: {fs:.3f} Гц")
         print(f"Номинальное разрешение FFT: {fs / n:.3f} Гц")
@@ -117,12 +133,7 @@ class EMDAnalyzer:
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         for i, imf in enumerate(self.imfs):
-            x = np.asarray(imf, dtype=float)
-            x = x - np.mean(x)
-
-            spectrum = np.abs(np.fft.rfft(x * window, n=n_fft))
-            if len(spectrum) > 0:
-                spectrum[0] = 0.0
+            spectrum = spectra[i]
 
             peak_index = int(np.argmax(spectrum))
             dominant_frequency = float(frequencies[peak_index])
@@ -145,10 +156,8 @@ class EMDAnalyzer:
             axs[i].grid(True)
             axs[i].legend()
 
-            if max_frequency is not None:
-                axs[i].set_xlim(0, min(max_frequency, fs / 2))
-            else:
-                axs[i].set_xlim(0, fs / 2)
+            follow_x(axs[i], margin=0.05, clip=(0.0, None))
+            axs[i].set_xlim(0, freq_limit)
 
         axs[-1].set_xlabel("Частота, Гц")
         plt.tight_layout()
