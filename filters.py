@@ -11,7 +11,7 @@ class Filter:
         if self.b_or_sos():
             w, h = signal.freqz(self.b, worN=65536, fs=self.fs)
         else:
-            w, h = signal.freqz(self.sos, worN=65536, fs=self.fs)
+            w, h = signal.sosfreqz(self.sos, worN=65536, fs=self.fs)
         mag = np.abs(h)
         mag_db = 20 * np.log10(np.maximum(mag, 1e-10))
 
@@ -26,7 +26,7 @@ class Filter:
 
         plt.subplot(2, 1, 2)
         plt.plot(w, np.unwrap(np.angle(h)))
-        plt.title('Фазовая характеристика')
+        plt.title('ФЧХ')
         plt.xlabel('Частота (Гц)')
         plt.ylabel('Фаза (радианы)')
         plt.grid(True)
@@ -103,12 +103,16 @@ class IIRFilter(Filter):
 
         elif self.ftype == 'ellip':
             f_type = 'Эллиптический'
-            puls = f'Пульсации в полосе пропускания: {self.rp} Дб, задерживания: {self.rs}'
+            puls = f'Пульсации в полосе пропускания: {self.rp} Дб, задерживания: {self.rs} Дб'
 
         elif self.ftype == 'bessel':
             f_type = 'Бесселя'
 
-        return f"БИХ фильтр "+ f_type + desc + '\n' + puls
+        if puls == None:
+            return f"БИХ фильтр "+ f_type + desc
+
+        else:
+            return f"БИХ фильтр " + f_type + desc + '\n' + puls
     
     def design(self) -> None:
 

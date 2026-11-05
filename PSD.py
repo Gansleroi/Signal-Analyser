@@ -5,14 +5,14 @@ import os
 from datetime import datetime
 
 class PSD:
-    def __init__(self, fs: float, signal: np.ndarray) -> None:
+    def __init__(self, fs: float, sig: np.ndarray) -> None:
         self.fs = fs
-        self.signal = signal
+        self.sig = sig
     
     def welch(self) -> None:
-        f, Pxx = signal.welch(self.signal, fs=self.fs, nperseg=1024)
+        f, pxx = signal.welch(self.sig, fs=self.fs, nperseg=1024)
         
-        plt.semilogy(f, Pxx)
+        plt.semilogy(f, pxx)
         plt.title("СПМ сигнала")
         plt.xlabel("Частота, Гц")
         plt.ylabel("СПМ")

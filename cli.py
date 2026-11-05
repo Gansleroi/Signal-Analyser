@@ -141,7 +141,8 @@ class Cli:
 
             if form == 5:
                 freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
-                mod_index = get_float_range("Введите коэффициент модуляции (от 0.0 до 1.0): \n", 0.0, 1.0)
+                mod_index = get_float_range("Введите коэффициент модуляции (от 0.0 до 1.0): \n",
+                                            0.0, 1.0)
             elif form == 6:
                 freq_end = get_float_positive("Введите конечную частоту ЛЧМ (Гц):\n")
             elif form == 7:
@@ -289,15 +290,17 @@ class Cli:
                 
 
                 if ftype in ['cheby1', 'ellip']:
-                    rp = get_float_range("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n", 0.01, 10.0)
+                    rp = get_float_range("Введите пульсации в полосе пропускания (дБ, обычно 0.5 - 3):\n",
+                                         0.01, 10.0)
                 
                 if ftype in ['cheby2', 'ellip']:
-                    rs = get_float_range("Введите пульсации в полосе задерживания (дБ, обычно 40 - 80):\n", 1.0, 150.0)
+                    rs = get_float_range("Введите пульсации в полосе задерживания (дБ, обычно 40 - 80):\n",
+                                         1.0, 150.0)
 
                 from filters import IIRFilter
 
                 filter = IIRFilter(
-                    N=order,
+                    n=order,
                     cut_off1=cut_off1,
                     cut_off2=cut_off2,
                     btype=btype,
@@ -316,7 +319,7 @@ class Cli:
                 " но шире переходная полоса.", 0, 20)
 
                 filter = FIRFilter(
-                    N=order,
+                    n=order,
                     cut_off1=cut_off1,
                     cut_off2=cut_off2,
                     btype=btype,
@@ -362,6 +365,6 @@ class Cli:
         ans_psd = get_choice("Построить СПМ сигнала? [y / n]\n", ['y', 'n'])
         if ans_psd == 'y':
             from PSD import PSD
-            psd = PSD(fs=self.fs, signal=signal_obj.data)
+            psd = PSD(fs=self.fs, sig=signal_obj.data)
             psd.welch()
     
