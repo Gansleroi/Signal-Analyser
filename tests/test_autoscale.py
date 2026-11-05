@@ -29,7 +29,6 @@ def _close_figures():
     plt.close('all')
 
 
-# ----------------------------- базовые функции ---------------------------- #
 @pytest.mark.parametrize("x, expected", [
     (550, 600), (0.013, 0.015), (1, 1), (1000, 1000), (0, 1), (-5, 1),
 ])
@@ -62,10 +61,7 @@ def test_padded_limits_nan_does_not_crash():
     assert padded_limits(np.nan, 1.0) == (-1.0, 1.0)
 
 
-# ------------------------------- log_ylim --------------------------------- #
 def test_log_ylim_ignores_numerical_noise_floor():
-    # Чистый синус: две линии 0.5 и «пол» вычислений 1e-17 (как на графиках
-    # до исправления, где ось тянулась до 1e-17).
     values = np.full(1000, 1e-17)
     values[[100, 900]] = 0.5
     bottom, top = log_ylim(values)
@@ -87,11 +83,9 @@ def test_log_ylim_power_uses_10log():
     values = np.array([1.0, 1e-9, 1e-12])
     b_power, _ = log_ylim(values, dynamic_range_db=100, power=True)
     b_ampl, _ = log_ylim(values, dynamic_range_db=100, power=False)
-    # 100 дБ по мощности = 1e-10, по амплитуде = 1e-5
     assert b_power < b_ampl
 
 
-# ------------------------------ ось частоты ------------------------------- #
 def _amp_spectrum(x):
     n = len(x)
     return (np.fft.fftshift(np.fft.fftfreq(n, 1 / FS)),
@@ -115,7 +109,6 @@ def test_freq_limit_zero_signal():
     assert choose_freq_limit(f, np.zeros(100), FS) == FS / 2
 
 
-# ------------------------------ ось времени ------------------------------- #
 def test_time_window_single_tone_shows_about_five_periods(t):
     lo, hi = choose_time_window(t, np.sin(2 * np.pi * 440 * t))
     assert lo == 0.0
@@ -129,7 +122,6 @@ def test_time_window_two_tones(t):
 
 
 def test_time_window_gaussian_pulse_follows_the_pulse(t):
-    # Регрессия: раньше окно было жёстко [0, 5 мс], а импульс в центре записи
     x = np.exp(-((t - 0.5) ** 2) / (2 * 0.001 ** 2))
     lo, hi = choose_time_window(t, x)
     assert lo < 0.5 < hi
@@ -150,8 +142,6 @@ def test_time_window_white_noise_shows_limited_number_of_samples(t):
 
 
 def test_time_window_chirp_is_not_mistaken_for_line_spectrum():
-    # Регрессия: у ЛЧМ спектр - плато с парой локальных пиков, и окно
-    # схлопывалось до ~5 мс.
     fs = 8000
     t = np.arange(2 * fs) / fs
     x = np.sin(2 * np.pi * (100 * t + 0.5 * (1900 / 2) * t ** 2))
@@ -175,7 +165,6 @@ def test_find_spectral_lines_rejects_plateau():
     assert find_spectral_lines(a) is None
 
 
-# --------------------------- Y следит за X -------------------------------- #
 def _step_signal():
     t = np.linspace(0, 1, 2001)
     y = np.where(t < 0.5, 1.0, 10.0) * np.sin(2 * np.pi * 20 * t)
@@ -198,19 +187,17 @@ def test_follow_x_rescales_y_when_x_changes():
     ax.plot(t, y)
     follow_x(ax, margin=0.05)
 
-    ax.set_xlim(0, 0.2)                 # тихая часть
+    ax.set_xlim(0, 0.2)
     assert max(abs(v) for v in ax.get_ylim()) < 1.5
 
-    ax.set_xlim(0.6, 0.8)               # громкая часть
+    ax.set_xlim(0.6, 0.8)
     assert max(abs(v) for v in ax.get_ylim()) > 9.0
 
-    ax.set_xlim(0, 0.2)                 # и обратно
+    ax.set_xlim(0, 0.2)
     assert max(abs(v) for v in ax.get_ylim()) < 1.5
 
 
 def test_follow_x_updates_all_axes_of_shared_group():
-    # События xlim_changed приходят только оси, которую двигали,
-    # поэтому обработчик обязан обновлять всю группу.
     t, y = _step_signal()
     fig, (a1, a2) = plt.subplots(2, 1, sharex=True)
     a1.plot(t, y)
@@ -235,12 +222,11 @@ def test_follow_x_with_zoom_between_samples_keeps_line_visible():
     fig, ax = plt.subplots()
     ax.plot(t, [0.0, 10.0, 0.0])
     follow_x(ax, margin=0.0)
-    ax.set_xlim(0.2, 0.4)               # ни одного отсчёта внутри окна
+    ax.set_xlim(0.2, 0.4)
     lo, hi = ax.get_ylim()
     assert lo == pytest.approx(2.0, abs=1e-6) and hi == pytest.approx(4.0, abs=1e-6)
 
 
-# ------------------------------ Plot целиком ------------------------------ #
 def _plot_for(x, t, hann=False, **kw):
     from graph import Plot
     from spec import Spectr
@@ -274,7 +260,6 @@ def test_plot_sine_axes_are_autoscaled(t):
 
 
 def test_plot_small_amplitude_is_not_flattened(t):
-    # Раньше фаза обнулялась при амплитуде < 0.1 В (абсолютный порог)
     fig = _plot_for(0.02 * np.sin(2 * np.pi * 440 * t), t)
     sig = fig.axes[0]
     assert max(abs(v) for v in sig.get_ylim()) < 0.03
@@ -288,13 +273,9 @@ def test_plot_manual_override_wins(t):
     assert amp.get_xlim() == pytest.approx((-5000, 5000))
 
 
-# ---------------------------- фазовый спектр ------------------------------ #
 @pytest.mark.parametrize("phase_deg", [0, 30, 90, -45])
 def test_phase_spectrum_matches_initial_phase(t, phase_deg):
-    # Регрессия: phasespec_shifted() считал FFT от FFT и возвращал 180/0
-    # независимо от начальной фазы.
     from spec import Spectr
-
     class Sig:
         pass
 
@@ -306,6 +287,5 @@ def test_phase_spectrum_matches_initial_phase(t, phase_deg):
     phase = sp.phasespec_shifted()
     f = sp.freqs_shifted()
     k = np.argmin(abs(f - 440))
-    # FFT даёт фазу относительно косинуса: phi_sin - 90
     expected = (phase_deg - 90 + 180) % 360 - 180
     assert phase[k] == pytest.approx(expected, abs=0.01)
