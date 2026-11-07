@@ -70,6 +70,13 @@ class Cli:
         self.M = get_int_range("Пожалуйста введите количество сигналов.\n", 1, 100)
         self.fs = get_float_positive("Введите частоту дискретизации (Гц):\n")
         self.ts = get_float_positive("Введите время реализации (с).\n")
+        self.signal_classes = {
+                1: SineSignal, 2: SquareSignal, 3: TriangleSignal, 4: SawtoothSignal, 5: AMSignal, 6: ChirpSignal,
+                7: PMSignal, 8: DampedSineSignal, 9: GaussianSignal, 10: WhiteNoiseSignal, 11: PinkNoiseSignal,
+                12: BrownianNoiseSignal, 13: FMSignal, 14: BlueNoiseSignal, 15: VioletNoiseSignal,
+                16: PerlinNoiseSignal, 17: UniformNoiseSignal, 18: ImpulseNoiseSignal, 19: ShotNoiseSignal,
+                20: HumNoiseSignal, 21: CustomColorNoiseSignal
+            }
             
         self.N = int(self.fs * self.ts)
         self.dt = 1 / self.fs
@@ -122,26 +129,11 @@ class Cli:
             print("20. Сетевая наводка")
             print("21. Шум с произвольным показателем beta (спектр 1/f^beta)")
 
-            cls = {
-                '1': SineSignal, '2': SquareSignal, '3': TriangleSignal,
-                '4': SawtoothSignal, '5': AMSignal, '6': ChirpSignal,
-                '7': PMSignal, '8': DampedSineSignal, '9': GaussianSignal,
-                '10': WhiteNoiseSignal, '11': PinkNoiseSignal,
-                '12': BrownianNoiseSignal, '13': FMSignal,
-                '14': BlueNoiseSignal, '15': VioletNoiseSignal,
-                '16': PerlinNoiseSignal, '17': UniformNoiseSignal,
-                '18': ImpulseNoiseSignal, '19': ShotNoiseSignal,
-                '20': HumNoiseSignal, '21': CustomColorNoiseSignal
-            }
-
             params = {}
     
-            form = get_int_range("", 1, 13)
+            form = get_int_range("", 1, 21)
             ampl = get_float_positive("Введите амплитуду сигнала (В)\n")
-
-            freq = 0.0
-            phase = 0.0
-            sigma = 0.0
+            params['ampl'] = ampl
 
             if form not in [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21]:
                 user_freq = get_float_positive("Введите частоту сигнала (Гц)\n")
@@ -168,15 +160,6 @@ class Cli:
             if form == 9:
                 sigma = get_float_positive("Введите ширину импульса sigma (в секундах):\n")
                 params['sigma'] = sigma
-
-            freq_mod = 0.0
-            mod_index = 0.0
-            freq_end = 0.0
-            damp_index = 0.0
-            freq_dev = 0.0
-            freq_car = 0.0
-            ampl_car = 0.0
-            beta = 0.0
 
             if form == 5:
                 freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
@@ -214,66 +197,8 @@ class Cli:
                 beta = get_float_range('Введите показатель beta (Спектр шума 1/f^beta):\n')
                 params['beta'] = beta
 
-            match form:
-                case 1:
-                    signal = SineSignal(freq=freq, ampl=ampl, phase=phase)
-                    signals.append(signal)
-    
-                case 2:
-                    signal = SquareSignal(freq=freq, ampl=ampl, phase=phase)
-                    signals.append(signal)
-    
-                case 3:
-                    signal = TriangleSignal(freq=freq, ampl=ampl, phase=phase)
-                    signals.append(signal)
-    
-                case 4:
-                    signal = SawtoothSignal(freq=freq, ampl=ampl, phase=phase)
-                    signals.append(signal)
-    
-                case 5:
-                    signal = AMSignal(freq=freq, ampl=ampl, freq_mod=freq_mod,
-                                    mod_index=mod_index, phase=phase)
-                    signals.append(signal)
-        
-                case 6:
-                    signal = ChirpSignal(freq_start=freq, freq_end=freq_end,
-                                         ampl=ampl, phase=phase)
-                    signals.append(signal)
-
-                case 7:
-                    signal = PMSignal(freq=freq, ampl=ampl, freq_mod=freq_mod,
-                                      mod_index=mod_index, phase=phase)
-                    signals.append(signal)
-    
-                case 8:
-                    signal = DampedSineSignal(freq=freq, ampl=ampl,
-                                              damping=damp_index, phase=phase)
-                    signals.append(signal)
-                    
-                case 9:
-                    signal = GaussianSignal(ampl=ampl, sigma=sigma)
-                    signals.append(signal)
-    
-                case 10:
-                    signal = WhiteNoiseSignal(ampl=ampl)
-                    signals.append(signal)
-
-                case 11:
-                    signal = PinkNoiseSignal(ampl=ampl)
-                    signals.append(signal)
-
-                case 12:
-                    signal = BrownianNoiseSignal(ampl=ampl)
-                    signals.append(signal)
-
-                case 13:
-                    signal = FMSignal(ampl=ampl, freq=freq, phase=phase,
-                                      freq_dev=freq_dev, freq_car=freq_car, ampl_car=ampl_car)
-                    signals.append(signal)
-
-                case _:
-                    print("Неверный выбор! Сигнал пропущен.")
+            signal = self.signal_classes[form](**params)
+            signals.append(signal)
     
         if not signals:
             print("Список сигналов пуст! Завершение программы...")

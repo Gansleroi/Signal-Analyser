@@ -32,8 +32,7 @@ class Spectr:
         return self._freqs
 
     def amplspec(self) -> np.ndarray:
-        if not hasattr(self, 'data'):
-            self.spec()
+        self.spec()
 
         self.amplitude = np.abs(self.data[:self.n]) / (len(self.signal) * self.norm_factor) * 2
         return self.amplitude
@@ -44,8 +43,7 @@ class Spectr:
         return self._freqs_shifted
 
     def amplspec_shifted(self) -> np.ndarray:
-        if not hasattr(self, 'data'):
-            self.spec()
+        self.spec()
 
         full_amplitude = (
             np.abs(self.data) /
@@ -56,8 +54,7 @@ class Spectr:
         return self.amplitude
 
     def phasespec_shifted(self) -> np.ndarray:
-        if not hasattr(self, 'data'):
-            self.spec()
+        self.spec()
 
         amplitude = np.abs(self.data) / (len(self.signal) * self.norm_factor)
         full_phase = np.degrees(np.angle(self.data))
