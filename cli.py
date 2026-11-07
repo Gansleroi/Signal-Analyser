@@ -100,19 +100,41 @@ class Cli:
     
             print(f"Создаётся {i + 1}-ый сигнал!")
             print("Выберите форму сигнала:")
-            print("1. Синус.")
-            print("2. Меандр.")
-            print("3. Треугольный сигнал.")
-            print("4. Пилообразный сигнал.")
+            print("1. Синус")
+            print("2. Меандр")
+            print("3. Треугольный сигнал")
+            print("4. Пилообразный сигнал")
             print("5. АМ-сигнал (Амплитудная модуляция)")
             print("6. ЛЧМ (Линейно-частотная модуляция)")
             print("7. ФМ (Фазовая модуляция)")
             print("8. Затухающий синус")
-            print("9. Гаусов импульс")
+            print("9. Гауссов импульс")
             print("10. Белый шум")
             print("11. Розовый шум (1/f)")
             print("12. Броуновский шум (1/f^2)")
             print("13. ЧМ (Частотная модуляция")
+            print("14. Синий шум (f)")
+            print("15. Фиолетовый шум (f^2)")
+            print("16. Шум Перлина")
+            print("17. Равномерный шум")
+            print("18. Импульсный шум")
+            print("19. Дробовой шум")
+            print("20. Сетевая наводка")
+            print("21. Шум с произвольным показателем beta (спектр 1/f^beta)")
+
+            cls = {
+                '1': SineSignal, '2': SquareSignal, '3': TriangleSignal,
+                '4': SawtoothSignal, '5': AMSignal, '6': ChirpSignal,
+                '7': PMSignal, '8': DampedSineSignal, '9': GaussianSignal,
+                '10': WhiteNoiseSignal, '11': PinkNoiseSignal,
+                '12': BrownianNoiseSignal, '13': FMSignal,
+                '14': BlueNoiseSignal, '15': VioletNoiseSignal,
+                '16': PerlinNoiseSignal, '17': UniformNoiseSignal,
+                '18': ImpulseNoiseSignal, '19': ShotNoiseSignal,
+                '20': HumNoiseSignal, '21': CustomColorNoiseSignal
+            }
+
+            params = {}
     
             form = get_int_range("", 1, 13)
             ampl = get_float_positive("Введите амплитуду сигнала (В)\n")
@@ -121,10 +143,11 @@ class Cli:
             phase = 0.0
             sigma = 0.0
 
-            if form not in [9, 10, 11, 12]:
+            if form not in [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21]:
                 user_freq = get_float_positive("Введите частоту сигнала (Гц)\n")
 
                 freq = snap_to_bin(desired_freq=user_freq, fs=self.fs, n=self.N)
+                params['freq'] = freq
 
                 if freq >= self.fs / 2:
                     print(f"ВНИМАНИЕ: Частота {freq:.1f} Гц слишком высока для Fs={self.fs} Гц.")
@@ -134,9 +157,17 @@ class Cli:
                     print(f"Частота скорректирована до {freq:.2f} Гц для идеального спектра (без растекания).")
 
                 phase = get_float("Введите начальную фазу сигнала в градусах.\n")
+                params['phase'] = phase
+
+            if form == 16:
+                user_freq = get_float_positive("Введите частоту сигнала (Гц)\n")
+
+                freq = snap_to_bin(desired_freq=user_freq, fs=self.fs, n=self.N)
+                params['freq'] = freq
 
             if form == 9:
                 sigma = get_float_positive("Введите ширину импульса sigma (в секундах):\n")
+                params['sigma'] = sigma
 
             freq_mod = 0.0
             mod_index = 0.0
@@ -145,23 +176,44 @@ class Cli:
             freq_dev = 0.0
             freq_car = 0.0
             ampl_car = 0.0
+            beta = 0.0
 
             if form == 5:
                 freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
                 mod_index = get_float_range("Введите коэффициент модуляции (от 0.0 до 1.0): \n",
                                             0.0, 1.0)
+                params['freq_mod'] = freq_mod
+                params['mod_index'] = mod_index
+
             elif form == 6:
                 freq_end = get_float_positive("Введите конечную частоту ЛЧМ (Гц):\n")
+                params['freq_end'] = freq_end
+
             elif form == 7:
                 freq_mod = get_float_positive("Введите модулирующую частоту (Гц):\n")
                 mod_index = get_float_positive("Введите коэффициент модуляции (например, 1.0 - 5.0):\n")
+
+                params['freq_mod'] = freq_mod
+                params['mod_index'] = mod_index
+
             elif form == 8:
                 damp_index = get_float_positive("Введите коэффициент затухания.\n")
+
+                params['damp_index'] = damp_index
+
             elif form == 13:
                 freq_car = get_float_positive("Введите частоту несущей.\n")
                 ampl_car = get_float_positive("Введите амплитуду несущей.\n")
                 freq_dev = get_float_positive("Введите девиацию частоты\n")
-    
+
+                params['freq_car'] = freq_car
+                params['ampl_car'] = ampl_car
+                params['freq_dev'] = freq_dev
+
+            elif form == 21:
+                beta = get_float_range('Введите показатель beta (Спектр шума 1/f^beta):\n')
+                params['beta'] = beta
+
             match form:
                 case 1:
                     signal = SineSignal(freq=freq, ampl=ampl, phase=phase)
@@ -200,7 +252,7 @@ class Cli:
                     signals.append(signal)
                     
                 case 9:
-                    signal = GaussianSignal(ampl=ampl, sigma=sigma, phase=phase)
+                    signal = GaussianSignal(ampl=ampl, sigma=sigma)
                     signals.append(signal)
     
                 case 10:
