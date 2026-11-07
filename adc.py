@@ -1,53 +1,163 @@
 ﻿import numpy as np
 import matplotlib.pyplot as plt
 from signals import (AMSignal, TriangleSignal, SawtoothSignal,
-                     WhiteNoiseSignal)
+                     WhiteNoiseSignal, BlueNoiseSignal,
+                     PinkNoiseSignal, PerlinNoiseSignal,
+                     BrownianNoiseSignal, VioletNoiseSignal,
+                     HumNoiseSignal, ShotNoiseSignal)
+
+from spec import Spectr
+import copy
+from PSD import PSD
+from exporter import AudioExporter
 
 
-def adc_3bit(signal: list, v_min: float, v_max: float) -> np.ndarray:
-    dig_signal = []
-    for i in range(len(signal)):
+def adc_any_bit(signal_obj, bits: int, v_min: float = None, v_max: float = None):
+    analog_signal = np.asarray(signal_obj.data, dtype=float)
 
-        signal_val = signal[i]
-        if signal_val < v_min:
-            signal_val = v_min
-        elif signal_val > v_max:
-            signal_val = v_max
+    if v_min is None:
+        v_min = analog_signal.min()
+    if v_max is None:
+        v_max = analog_signal.max()
 
-        num_levels = 2 ** 8
+    num_levels = 2 ** bits
+    step = (v_max - v_min) / num_levels
 
-        step = (v_max - v_min) / num_levels
+    # ограничение по диапазону АЦП
+    clipped = np.clip(analog_signal, v_min, v_max)
 
-        if signal_val == v_max:
-            dig_signal_val = int(num_levels - 1)
-            dig_signal.append(dig_signal_val)
-        else:
-            dig_signal_val = int((signal_val - v_min) / step)
-            dig_signal.append(dig_signal_val)
+    # квантование: коды 0 ... num_levels-1 (v_max попадает в верхний уровень)
+    codes = np.minimum(((clipped - v_min) / step).astype(int), num_levels - 1)
 
-    return dig_signal
+    # восстановление: масштаб (step) и сдвиг (v_min), середина интервала
+    restored_voltage = v_min + (codes + 0.5) * step
+
+    digital_signal = copy.deepcopy(signal_obj)
+    restored_signal = copy.deepcopy(signal_obj)
+    digital_signal.data = codes
+    restored_signal.data = restored_voltage
+
+    return digital_signal, restored_signal
 
 fs = 44100
-ts = 0.03
+ts = 3
 N = int(fs * ts)
 t = np.arange(N) / fs
 freq = 1.0e3
 freq_mod = 150.0
-ampl=4.0
+ampl= 6.0
 phase = 90.0
 mod_index = 0.8
 
 #signal = SawtoothSignal(freq=freq, ampl=ampl, phase=phase)
-signal = AMSignal(ampl=ampl, phase=phase, freq=freq, freq_mod=freq_mod, mod_index=mod_index)
+#signal = AMSignal(ampl=ampl, phase=phase, freq=freq, freq_mod=freq_mod, mod_index=mod_index)
 #signal = WhiteNoiseSignal(ampl=ampl)
+#signal = BlueNoiseSignal(ampl=ampl)
+#signal = PerlinNoiseSignal(ampl=ampl, freq=440)
+#signal = BrownianNoiseSignal(ampl=ampl)
+#signal = PinkNoiseSignal(ampl=ampl)
+#signal = VioletNoiseSignal(ampl=ampl)
+#signal = HumNoiseSignal()
+signal = ShotNoiseSignal(ampl=ampl)
 
 signal.generate(t)
 
-dig = adc_3bit(signal.data, v_min=-ampl*(1.0+mod_index), v_max=ampl*(1.0+mod_index))
 
-fig, ax = plt.subplots(nrows=2, ncols=1)
 
-ax[0].plot(t, signal.data)
-ax[1].plot(t, dig)
 
+digital, restored = adc_any_bit(signal_obj=signal, bits=3)
+
+spec_analog_sig = Spectr(signal_obj=signal, fs=fs, use_hann=True)
+spec_analog_sig.amplspec()
+ampl_spec_analog_sig = spec_analog_sig.amplitude
+spec_analog_sig.freqs()
+freqs_spec_analog_sig = spec_analog_sig._freqs
+
+spec_digital_signal = Spectr(signal_obj=digital, fs=fs, use_hann=True)
+spec_digital_signal.amplspec()
+ampl_spec_digital_signal = spec_digital_signal.amplitude
+spec_digital_signal.freqs()
+freqs_spec_digital_signal = spec_digital_signal._freqs
+
+spec_restored_signal = Spectr(signal_obj=restored, fs=fs, use_hann=True)
+spec_restored_signal.amplspec()
+ampl_spec_restored_signal = spec_restored_signal.amplitude
+spec_restored_signal.freqs()
+freqs_spec_restored_signal = spec_restored_signal._freqs
+
+
+fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(20, 6))
+
+ax[0, 0].plot(t, signal.data)
+ax[0, 0].set_xlabel("Время, с")
+ax[0, 0].set_ylabel("Амплитуда, В")
+ax[0, 0].set_title("Исходный сигнал")
+ax[0, 0].set_xlim(0, 1)
+ax[0, 0].grid(True)
+
+ax[0, 1].plot(freqs_spec_analog_sig, ampl_spec_analog_sig)
+ax[0, 1].set_xlabel("Частота, Гц")
+ax[0, 1].set_ylabel("Амплитуда, В")
+ax[0, 1].set_title("Амплитудный спектр")
+ax[0, 1].set_xlim(0, 5000)
+ax[0, 1].set_yscale("log")
+ax[0, 1].grid(True)
+
+ax[1, 0].plot(t, digital.data)
+ax[1, 0].set_xlabel("Время, с")
+ax[1, 0].set_ylabel("Амплитуда ед. АЦП")
+ax[1, 0].set_title("Оцифрованный сигнал")
+ax[1, 0].set_xlim(0, 1)
+ax[1, 0].grid(True)
+
+ax[1, 1].plot(freqs_spec_digital_signal, ampl_spec_digital_signal)
+ax[1, 1].set_xlabel("Частота, Гц")
+ax[1, 1].set_ylabel("Амплитуда, В")
+ax[1, 1].set_title("Амплитудный спектр")
+ax[1, 1].set_xlim(0, 5000)
+ax[1, 1].set_yscale("log")
+ax[1, 1].grid(True)
+
+ax[2, 0].plot(t, restored.data)
+ax[2, 0].set_xlabel("Время, с")
+ax[2, 0].set_ylabel("Амплитуда, В")
+ax[2, 0].set_title("Восстановленный сигнал")
+ax[2, 0].set_xlim(0, 1)
+ax[2, 0].grid(True)
+
+ax[2, 1].plot(freqs_spec_restored_signal, ampl_spec_restored_signal)
+ax[2, 1].set_xlabel("Частота, Гц")
+ax[2, 1].set_ylabel("Амплитуда, В")
+ax[2, 1].set_title("Амплитудный спектр")
+ax[2, 1].set_xlim(0, 5000)
+ax[2, 1].set_yscale("log")
+ax[2, 1].grid(True)
+
+plt.tight_layout()
 plt.show()
+
+err = signal.data - restored.data
+snr = 10 * np.log10(np.var(signal.data) / np.var(err))
+print(f"Шаг квантования: {(signal.data.max() - signal.data.min()) / 8:.3f} В")
+print(f"Макс. ошибка: {np.abs(err).max():.3f} В")
+print(f"ОСШ квантования: {snr:.1f} дБ")
+
+bits_arr = np.arange(1, 25)
+snr_meas = []
+for b in bits_arr:
+    dig, rest = adc_any_bit(signal, bits=b)
+    err = signal.data - rest.data
+    snr_meas.append(10 * np.log10(np.var(signal.data) / np.var(err)))
+
+plt.plot(bits_arr, snr_meas, 'o-', label="Измеренное")
+plt.plot(bits_arr, 6.02 * bits_arr, '--', label="Теория: 6,02·N")
+plt.xlabel("Разрядность АЦП, бит")
+plt.ylabel("ОСШ, дБ")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+psd = PSD(fs=fs, sig=signal.data)
+psd.welch()
+
+AudioExporter.save_to_wav(filename='yfdrf.wav', fs=fs, signal=signal.data)

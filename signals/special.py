@@ -30,7 +30,7 @@ class GaussianSignal(BaseSignal):
     def __str__(self):
         return f"Gaussian (σ={self.sigma*1e3:.2f}мс)" 
 
-
+'''
 class WhiteNoiseSignal(BaseSignal):
     def __init__(self, ampl: float) -> None:
         super().__init__(freq=0.0, ampl=ampl)
@@ -91,3 +91,4 @@ class PinkNoiseSignal(BaseSignal):
 
     def __str__(self):
         return f"Pink Noise (1/f, σ={self.ampl})"   
+'''
