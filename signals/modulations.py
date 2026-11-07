@@ -12,7 +12,7 @@ class AMSignal(BaseSignal):
         self.t = t
 
         envelope = (
-                1 + self.mod_index *
+                1.0 + self.mod_index *
                 np.sin(2 * np.pi * self.freq_mod * t)
         )
 
