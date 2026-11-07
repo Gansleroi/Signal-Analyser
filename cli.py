@@ -275,6 +275,8 @@ class Cli:
                 ['lowpass', 'highpass', 'bandpass', 'bandstop']
             )
 
+            order = 0
+
             if btype == 'highpass' or btype == 'bandstop' and ans_filter == 'fir':
                 order = get_int_even('Введите порядок фильтра\n',
                                      "Для такого типа фильтра порядок должен быть чётным!",
