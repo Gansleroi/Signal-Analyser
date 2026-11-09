@@ -1,4 +1,4 @@
-from .base import BaseSignal
+from .base import BaseSignal, ImportSignal
 from .basic import *
 from .modulations import *
 from .special import *

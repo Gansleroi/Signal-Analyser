@@ -23,3 +23,8 @@ class BaseSignal:
         new_sig.data = self.data + other.data
         return new_sig
 
+class ImportSignal:
+    def __init__(self, data: np.ndarray, t: np.ndarray, fs: float) -> None:
+        self.data = data
+        self.t = t
+        self.fs = fs
