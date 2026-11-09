@@ -10,7 +10,7 @@ class Spectr:
 
         if self.use_hann:
             self.window = np.hanning(len(self.signal))
-            self.norm_factor = np.mean(self.window)
+            self.norm_factor = np.mean(self.window[:, None])
         else:
             self.norm_factor = 1.0
 
@@ -64,3 +64,38 @@ class Spectr:
 
         self.phase_spectrum = np.fft.fftshift(full_phase)
         return self.phase_spectrum
+
+    def real_spec(self) -> np.ndarray:
+        if self.signal is None:
+            raise ValueError("Сигнал пуст!")
+
+        sig = self.signal
+        if self.use_hann:
+            w = self.window if sig.ndim == 1 else self.window[:, None]
+            sig = sig * w
+
+        self.data = np.fft.rfft(sig, axis=0)
+        return self.data
+
+    def real_amplspec(self) -> np.ndarray:
+        self.real_spec()
+        amp = np.abs(self.data[:self.n]) / (len(self.signal) * self.norm_factor)
+        amp[1:] *= 2
+        self.amplitude = amp
+        return amp
+
+    def phase_real_spec(self) -> np.ndarray:
+        self.real_spec()
+        spec = self.data[:self.n]
+        amp = np.abs(spec)
+        phase = np.degrees(np.angle(spec))
+
+        threshold = amp.max(axis=0, keepdims=True) * 1e-7
+        phase[amp < threshold] = np.nan
+
+        self.phase_spectrum = phase
+        return phase
+
+    def real_freqs(self) -> np.ndarray:
+        self._freqs = np.fft.rfftfreq(len(self.signal), d=1/self.fs)[:self.n]
+        return self._freqs
